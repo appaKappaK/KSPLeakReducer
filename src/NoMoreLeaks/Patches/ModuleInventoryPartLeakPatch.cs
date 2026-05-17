@@ -26,7 +26,7 @@ namespace NoMoreLeaks.Patches
             Cleanup(__instance);
         }
 
-        private static void Cleanup(ModuleInventoryPart instance)
+        internal static void Cleanup(ModuleInventoryPart instance)
         {
             EventCleanup.RemoveGameEvent(GameEvents.onPartActionUICreate, instance, "onPartActionUIOpened");
             EventCleanup.RemoveGameEvent(GameEvents.onModuleInventoryChanged, instance, "OnModuleInventoryChanged");

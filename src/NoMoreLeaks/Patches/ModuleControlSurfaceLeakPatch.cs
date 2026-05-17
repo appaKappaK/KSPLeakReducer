@@ -26,8 +26,12 @@ namespace NoMoreLeaks.Patches
             Cleanup(__instance);
         }
 
-        private static void Cleanup(ModuleControlSurface instance)
+        internal static void Cleanup(ModuleControlSurface instance)
         {
+            EventCleanup.RemoveGameEvent(GameEvents.onEditorPartEvent, instance, "OnEditorPartEvent");
+            EventCleanup.RemoveGameEvent(GameEvents.onPartActionUIShown, instance, "OnPartActionUIShown");
+            EventCleanup.RemoveGameEvent(GameEvents.onPartActionUIDismiss, instance, "OnPartActionUIDismiss");
+            EventCleanup.RemoveGameEvent(GameEvents.onVariantApplied, instance, "onVariantApplied");
             EventCleanup.RemoveGameEvent(GameEvents.onVesselReferenceTransformSwitch, instance, "onVesselReferenceTransformSwitch");
         }
     }

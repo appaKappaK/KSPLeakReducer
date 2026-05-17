@@ -12,7 +12,24 @@ This mod does not replace KSPCommunityFixes. It tries to prevent selected stock 
 - `ModuleInventoryPart | onEditorPartEvent`
 - `ModuleInventoryPart | OnPartPurchased`
 - `ModuleDeployableSolarPanel | onVesselChange`
+- `ModuleControlSurface | onEditorPartEvent`
 - `ModuleControlSurface | onVesselReferenceTransformSwitch`
+- `ModuleGroundPart | onPartActionUIShown`
+- `ModuleGroundPart | onPartActionUIDismiss`
+- `ModuleGroundPart | onVesselChange`
+- `ModuleGroundPart | onPartWillDie`
+- `ModuleGroundPart | onLevelConfirmExit`
+- `ModuleGroundPart | OnEVAConstructionMode`
+- `ModuleGroundSciencePart | onGroundScienceDeregisterCluster`
+- `ModuleGroundSciencePart | onGroundScienceClusterUpdated`
+- `ModuleGroundSciencePart | onGroundScienceClusterPowerStateChanged`
+- `ModuleGroundExperiment | onGroundScienceGenerated`
+- `ModuleGroundExperiment | onGroundScienceTransmitted`
+- `ModuleGroundExpControl | onGroundSciencePartDeployed`
+- `ModuleGroundExpControl | onGroundSciencePartEnabledStateChanged`
+- `ModuleGroundExpControl | onGroundSciencePartRemoved`
+- `KerbalEVA | OnROCExperimentStored`
+- `KerbalEVA | OnROCExperimentReset`
 - `EVAConstructionModeEditor | OnClick`
 - `RunwayCollisionHandler | OnDestructibleLoaded`
 - `BuildingPickerItem | OnInViewChange`
@@ -25,6 +42,8 @@ This mod does not replace KSPCommunityFixes. It tries to prevent selected stock 
 - `VesselAutopilotUI | OnGameSettingsApplied`
 - `NavBallToggle | OnMapExited`
 - `CommNetVessel | onPlanetariumTargetChange`
+
+Selected part-module leaks are also cleaned from `Part.OnDestroy`, `Part.RemoveModule`, and `Part.RemoveModules` patches, because individual module cleanup can be missed or scene-gated during part teardown.
 
 ## Dependency
 
