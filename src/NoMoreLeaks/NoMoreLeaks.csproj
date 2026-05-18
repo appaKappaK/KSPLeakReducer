@@ -36,6 +36,7 @@
   <ItemGroup>
     <Compile Include="Startup.cs" />
     <Compile Include="EventCleanup.cs" />
+    <Compile Include="InventoryCallbackSweeper.cs" />
     <Compile Include="Patches\BuildingPickerItemLeakPatch.cs" />
     <Compile Include="Patches\CommNetVesselLeakPatch.cs" />
     <Compile Include="Patches\MapViewLeakPatch.cs" />
@@ -50,6 +51,7 @@
     <Compile Include="Patches\OverlayGeneratorLeakPatch.cs" />
     <Compile Include="Patches\PartModuleLifecycleLeakPatch.cs" />
     <Compile Include="Patches\RunwayCollisionHandlerLeakPatch.cs" />
+    <Compile Include="Patches\UIPartActionInventorySlotLeakPatch.cs" />
     <Compile Include="Patches\VesselAutopilotUILeakPatch.cs" />
   </ItemGroup>
   <ItemGroup>

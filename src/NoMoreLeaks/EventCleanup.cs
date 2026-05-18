@@ -164,6 +164,42 @@ namespace NoMoreLeaks
             return removed;
         }
 
+        internal static int RemoveOwner(object eventSource, object owner)
+        {
+            if (eventSource == null || owner == null) return 0;
+
+            FieldInfo eventsField = AccessTools.Field(eventSource.GetType(), "events");
+            if (eventsField == null)
+            {
+                Debug.LogWarning("[NoMoreLeaks] Missing events list on " + eventSource.GetType().FullName);
+                return 0;
+            }
+
+            IList events = eventsField.GetValue(eventSource) as IList;
+            if (events == null) return 0;
+
+            int removed = 0;
+            for (int i = events.Count - 1; i >= 0; i--)
+            {
+                object eventEntry = events[i];
+                if (eventEntry == null) continue;
+
+                FieldInfo originatorField = AccessTools.Field(eventEntry.GetType(), "originator");
+                if (originatorField == null)
+                {
+                    Debug.LogWarning("[NoMoreLeaks] Missing event originator field on " + eventEntry.GetType().FullName);
+                    return removed;
+                }
+
+                if (!ReferenceEquals(originatorField.GetValue(eventEntry), owner)) continue;
+
+                events.RemoveAt(i);
+                removed++;
+            }
+
+            return removed;
+        }
+
         internal static object GetInstanceField(object source, string fieldName)
         {
             if (source == null) return null;

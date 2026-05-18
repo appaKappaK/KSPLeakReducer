@@ -28,6 +28,12 @@ namespace NoMoreLeaks.Patches
 
         internal static void Cleanup(ModuleInventoryPart instance)
         {
+            EventCleanup.RemoveOwner(GameEvents.onPartActionUICreate, instance);
+            EventCleanup.RemoveOwner(GameEvents.onModuleInventoryChanged, instance);
+            EventCleanup.RemoveOwner(GameEvents.onEditorPartEvent, instance);
+            EventCleanup.RemoveOwner(GameEvents.OnPartPurchased, instance);
+            EventCleanup.RemoveOwner(GameEvents.OnInventoryPartOnMouseChanged, instance);
+
             EventCleanup.RemoveGameEvent(GameEvents.onPartActionUICreate, instance, "onPartActionUIOpened");
             EventCleanup.RemoveGameEvent(GameEvents.onModuleInventoryChanged, instance, "OnModuleInventoryChanged");
             EventCleanup.RemoveGameEvent(GameEvents.onEditorPartEvent, instance, "OnEditorPartEvent");

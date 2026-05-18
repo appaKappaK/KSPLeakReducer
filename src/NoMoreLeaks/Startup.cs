@@ -14,7 +14,7 @@ namespace NoMoreLeaks
         {
             new Harmony(HarmonyId).PatchAll();
             Debug.Log("[NoMoreLeaks] Harmony patches applied");
-            SweepDestroyedInventoryCallbacks();
+            InventoryCallbackSweeper.Sweep();
         }
 
         private void Update()
@@ -22,17 +22,7 @@ namespace NoMoreLeaks
             if (Time.realtimeSinceStartup < nextInventorySweep) return;
 
             nextInventorySweep = Time.realtimeSinceStartup + InventorySweepInterval;
-            SweepDestroyedInventoryCallbacks();
-        }
-
-        private static void SweepDestroyedInventoryCallbacks()
-        {
-            int removed = 0;
-            removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onPartActionUICreate, typeof(ModuleInventoryPart));
-            removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onModuleInventoryChanged, typeof(ModuleInventoryPart));
-
-            if (removed > 0)
-                Debug.Log("[NoMoreLeaks] Removed " + removed + " destroyed ModuleInventoryPart callbacks");
+            InventoryCallbackSweeper.Sweep();
         }
     }
 }
