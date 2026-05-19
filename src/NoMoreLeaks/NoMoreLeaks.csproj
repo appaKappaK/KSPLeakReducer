@@ -52,6 +52,7 @@
     <Compile Include="Patches\OverlayGeneratorLeakPatch.cs" />
     <Compile Include="Patches\PartModuleLifecycleLeakPatch.cs" />
     <Compile Include="Patches\RunwayCollisionHandlerLeakPatch.cs" />
+    <Compile Include="Patches\SpaceTrackingLeakPatch.cs" />
     <Compile Include="Patches\UIPartActionInventorySlotLeakPatch.cs" />
     <Compile Include="Patches\VesselAutopilotUILeakPatch.cs" />
   </ItemGroup>

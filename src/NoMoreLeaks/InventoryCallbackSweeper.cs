@@ -16,9 +16,26 @@ namespace NoMoreLeaks
             removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onEditorPartDeleted, typeof(UIPartActionInventorySlot));
             removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onVesselChange, typeof(Expansions.Serenity.ModuleRobotArmScanner));
             removed += EventCleanup.RemoveDestroyedOwnersByTypeName(GameEvents.onEditorShipModified, "PlanetarySurfaceStructures.ModuleKPBSCorridorNodes");
+            removed += RemoveDestroyedSpaceTrackingCallbacks();
 
             if (removed > 0)
                 Debug.Log("[NoMoreLeaks] Removed " + removed + " destroyed callback owners");
+        }
+
+        private static int RemoveDestroyedSpaceTrackingCallbacks()
+        {
+            if (FlightGlobals.Vessels == null) return 0;
+
+            int removed = 0;
+            for (int i = 0; i < FlightGlobals.Vessels.Count; i++)
+            {
+                Vessel vessel = FlightGlobals.Vessels[i];
+                if (vessel == null || vessel.orbitRenderer == null) continue;
+
+                removed += EventCleanup.RemoveDestroyedOwnersByTypeName(vessel.orbitRenderer.onVesselIconClicked, "SpaceTracking");
+            }
+
+            return removed;
         }
     }
 }

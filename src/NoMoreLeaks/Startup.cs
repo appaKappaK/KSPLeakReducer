@@ -12,6 +12,7 @@ namespace NoMoreLeaks
 
         private void Awake()
         {
+            transform.SetParent(null);
             DontDestroyOnLoad(gameObject);
             new Harmony(HarmonyId).PatchAll();
             Debug.Log("[NoMoreLeaks] Harmony patches applied");
