@@ -45,6 +45,7 @@
     <Compile Include="Patches\ModuleDeployableSolarPanelLeakPatch.cs" />
     <Compile Include="Patches\ModuleGroundPartLeakPatch.cs" />
     <Compile Include="Patches\ModuleInventoryPartLeakPatch.cs" />
+    <Compile Include="Patches\ModuleRobotArmScannerLeakPatch.cs" />
     <Compile Include="Patches\NavBallToggleLeakPatch.cs" />
     <Compile Include="Patches\EVAConstructionModeEditorLeakPatch.cs" />
     <Compile Include="Patches\KerbalEVALeakPatch.cs" />

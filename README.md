@@ -89,6 +89,8 @@ The plugin uses Harmony patches on known stock teardown paths such as module `On
 
 It also runs a persistent sweeper from a `DontDestroyOnLoad` KSP addon. The sweeper checks selected `GameEvents` every frame/scene transition and removes event entries whose owners are already destroyed. This is needed because some stock owners become destroyed before their normal unsubscribe path runs.
 
+Some fixes are direct lifecycle patches. For example, `ModuleRobotArmScanner` hides `ModuleDeployablePart.OnDestroy()`, so the base `onVesselChange` unsubscribe can be skipped unless patched directly.
+
 ## Validation
 
 Use KSPCF memory leak logging and compare the exported summary before and after a run.
