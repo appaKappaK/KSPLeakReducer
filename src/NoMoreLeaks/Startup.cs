@@ -27,6 +27,13 @@ namespace NoMoreLeaks
 
         private void Update()
         {
+            if (HighLogic.LoadedSceneIsEditor)
+            {
+                int removed = InventoryCallbackSweeper.SweepEditorInventoryCallbacks();
+                if (removed > 0)
+                    Debug.Log("[NoMoreLeaks] Removed " + removed + " destroyed callback owners");
+            }
+
             if (Time.realtimeSinceStartup < nextSweep) return;
 
             nextSweep = Time.realtimeSinceStartup + SweepInterval;

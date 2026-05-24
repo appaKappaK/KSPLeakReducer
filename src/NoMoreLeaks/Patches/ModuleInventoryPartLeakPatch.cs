@@ -9,6 +9,9 @@ namespace NoMoreLeaks.Patches
         [HarmonyPatch("OnStart")]
         private static void OnStartPrefix(ModuleInventoryPart __instance)
         {
+            if (HighLogic.LoadedSceneIsEditor)
+                InventoryCallbackSweeper.SweepEditorInventoryCallbacks();
+
             Cleanup(__instance);
         }
 

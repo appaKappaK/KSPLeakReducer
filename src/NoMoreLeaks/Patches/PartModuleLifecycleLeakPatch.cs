@@ -31,6 +31,15 @@ namespace NoMoreLeaks.Patches
         }
     }
 
+    [HarmonyPatch(typeof(Part), "OnDelete")]
+    internal static class PartOnDeleteLeakPatch
+    {
+        private static void Prefix(Part __instance)
+        {
+            PartModuleLifecycleLeakPatch.CleanupPartModules(__instance);
+        }
+    }
+
     [HarmonyPatch(typeof(Part), "RemoveModule")]
     internal static class PartRemoveModuleLeakPatch
     {
