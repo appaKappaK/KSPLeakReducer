@@ -39,6 +39,7 @@ namespace NoMoreLeaks
         internal static int SweepMapUiCallbacks()
         {
             int removed = 0;
+            removed += SweepAutopilotCallbacks();
             removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onGameStateLoad, typeof(OverlayGenerator));
             removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onPlanetariumTargetChanged, typeof(OverlayGenerator));
             removed += EventCleanup.RemoveDestroyedOwners(GameEvents.OnMapExited, typeof(KSP.UI.Screens.Flight.NavBallToggle));
@@ -55,6 +56,15 @@ namespace NoMoreLeaks
             object timing5 = EventCleanup.GetInstanceField(timingManager, "timing5");
             removed += EventCleanup.RemoveDestroyedDelegateMemberOwners(timing5, "onLateUpdate");
 
+            return removed;
+        }
+
+        internal static int SweepAutopilotCallbacks()
+        {
+            int removed = 0;
+            removed += EventCleanup.RemoveDestroyedOwners(GameEvents.OnGameSettingsApplied, typeof(VesselAutopilotUI));
+            removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onVesselChange, typeof(VesselAutopilotUI));
+            removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onKerbalLevelUp, typeof(VesselAutopilotUI));
             return removed;
         }
 

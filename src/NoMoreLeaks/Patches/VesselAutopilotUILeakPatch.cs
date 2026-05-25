@@ -10,6 +10,8 @@ namespace NoMoreLeaks.Patches
         private static void StartPrefix()
         {
             EventCleanup.RemoveDestroyedOwners(GameEvents.OnGameSettingsApplied, typeof(VesselAutopilotUI));
+            EventCleanup.RemoveDestroyedOwners(GameEvents.onVesselChange, typeof(VesselAutopilotUI));
+            EventCleanup.RemoveDestroyedOwners(GameEvents.onKerbalLevelUp, typeof(VesselAutopilotUI));
         }
 
         [HarmonyPrefix]
@@ -29,7 +31,11 @@ namespace NoMoreLeaks.Patches
         private static void Cleanup(VesselAutopilotUI instance)
         {
             EventCleanup.RemoveOwner(GameEvents.OnGameSettingsApplied, instance);
+            EventCleanup.RemoveOwner(GameEvents.onVesselChange, instance);
+            EventCleanup.RemoveOwner(GameEvents.onKerbalLevelUp, instance);
             EventCleanup.RemoveGameEvent(GameEvents.OnGameSettingsApplied, instance, "onGameParametersChanged");
+            EventCleanup.RemoveGameEvent(GameEvents.onVesselChange, instance, "OnVesselChange");
+            EventCleanup.RemoveGameEvent(GameEvents.onKerbalLevelUp, instance, "OnKerbalLevelUp");
         }
     }
 }

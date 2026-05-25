@@ -82,6 +82,8 @@ Stock KSP / DLC callback owners:
 - `OverlayGenerator | MapView.OnExitMapView`
 - `MapView | TimingManager.Instance.timing5.onLateUpdate`
 - `VesselAutopilotUI | OnGameSettingsApplied`
+- `VesselAutopilotUI | onVesselChange`
+- `VesselAutopilotUI | onKerbalLevelUp`
 - `NavBallToggle | OnMapExited`
 - `InternalNavBall | onVesselChange`
 - `CommNetVessel | onPlanetariumTargetChange`
@@ -102,7 +104,7 @@ Optional third-party cleanup currently covered:
 
 The plugin uses Harmony patches on known stock teardown paths such as module `OnDestroy()`, `Part.OnDestroy`, `Part.OnDelete`, `Part.RemoveModule`, and `Part.RemoveModules`.
 
-It also runs a persistent sweeper from a `DontDestroyOnLoad` KSP addon. The broad stock sweep runs on scene load and on a timed interval, while inventory callback cleanup now runs every frame so scene transitions like `EDITOR -> FLIGHT` have fewer chances to strand `ModuleInventoryPart` subscriptions.
+It also runs a persistent sweeper from a `DontDestroyOnLoad` KSP addon. The broad stock sweep runs on scene load and on a timed interval, while low-cost hot-path cleanup for `ModuleInventoryPart` and `VesselAutopilotUI` now runs every frame so scene transitions like `EDITOR -> FLIGHT` have fewer chances to strand subscriptions.
 
 Some fixes are direct lifecycle patches. For example, `ModuleRobotArmScanner` hides `ModuleDeployablePart.OnDestroy()`, so the base `onVesselChange` unsubscribe can be skipped unless patched directly.
 
@@ -112,7 +114,7 @@ Map-view cleanup also removes destroyed owners from static `MapView.OnEnterMapVi
 
 ## Validation
 
-Use KSPCF memory leak logging and compare the exported summary before and after a run. The helper script under `memleaks/export-ksp-memleaks.sh` now exports:
+Use KSPCF memory leak logging and compare the exported summary before and after a run. The helper script under `memleaks/export-ksp-memleaks.sh` now exports timestamped files by default so repeated runs do not overwrite each other:
 
 - `KSPCF-memory-leaks-raw.txt`
 - `KSPCF-memory-leaks-summary.txt`
@@ -151,7 +153,8 @@ Short timeline:
 | 2026-05-21 to 2026-05-23 | repo `leak-sums/` | `ModuleInventoryPart` returned strongly (`28` to `85`), `UIPartActionInventorySlot` reached `50/50`, `VesselAutopilotUI` stayed present, and `SpaceTracking` / `InternalNavBall` showed up in the worst run on `2026-05-23` | current focus area that drove the newer sweeper changes |
 | 2026-05-24 | repo `memleaks/5-24-26*` | inventory-heavy editor runs ranged from `45/45` up to `78/78`; `UIPartActionInventorySlot`, `SpaceTracking`, and `InternalNavBall` were reduced by newer patches | inventory timing still unstable, but broader stock coverage improved |
 | 2026-05-25 early | repo `memleaks/NEW LEAKS SUMMARY` long-flight run | `OverlayGenerator`, `MapView`, `NavBallToggle`, and `VesselAutopilotUI` became the dominant stock leaks during a long orbital session, while `ModuleInventoryPart` was low at `6/6` | long-flight map/UI leak cluster identified |
-| 2026-05-25 latest | repo `memleaks/NEW LEAKS SUMMARY` after map/UI fixes | `OverlayGenerator`, `MapView`, `NavBallToggle`, `SpaceTracking`, `InternalNavBall`, `BuildingPickerItem`, and `EVAConstructionModeEditor` disappeared from the KSPCF summary; `ModuleInventoryPart` regressed to `69/69` with `19/19` on purchased/editor events | map/UI work paid off, inventory remains the main persistent stock leak |
+| 2026-05-25 midday | repo `memleaks/NEW LEAKS SUMMARY` after map/UI fixes | `OverlayGenerator`, `MapView`, `NavBallToggle`, `SpaceTracking`, `InternalNavBall`, `BuildingPickerItem`, and `EVAConstructionModeEditor` disappeared from the KSPCF summary; `ModuleInventoryPart` regressed to `69/69` with `19/19` on purchased/editor events | map/UI work paid off, inventory remained the main persistent stock leak |
+| 2026-05-25 latest | repo `memleaks/NEW LEAKS SUMMARY` longer session after tighter inventory sweeps | `ModuleInventoryPart` improved again to `16/16` with `2/2` on purchased/editor events; `VesselAutopilotUI` rose to `20`; map/UI leak cluster stayed gone | inventory timing improved again, `VesselAutopilotUI` became the top remaining stock issue |
 
 Control comparison:
 
@@ -165,12 +168,18 @@ As of `2026-05-25`, the mod has materially improved several stock leak classes:
 - long-flight `OverlayGenerator` / `MapView` / `NavBallToggle` leaks were reduced out of the KSPCF summary after dedicated map/UI cleanup was added
 - `SpaceTracking`, `InternalNavBall`, `BuildingPickerItem`, and `EVAConstructionModeEditor` are now much less prominent than in the earlier worst runs
 - the plugin is actively removing the targeted callbacks, confirmed by `NoMoreLeaks-debug-summary.txt`
+- `ModuleInventoryPart` has come down substantially from its `69/69/19/19` regression to `16/16/2/2` in the latest longer-session export
 
-The main unresolved stock issue is still `ModuleInventoryPart`:
+The main unresolved stock issues are now `VesselAutopilotUI` first and `ModuleInventoryPart` second:
 
-- latest observed KSPCF summary: `69` `onPartActionUICreate`, `69` `onModuleInventoryChanged`, `19` `OnPartPurchased`, `19` `onEditorPartEvent`
-- latest debug summary shows `NoMoreLeaks` is removing many `ModuleInventoryPart` callbacks itself, but KSPCF is still catching additional destroyed owners later
-- current working theory is that inventory subscriptions are still slipping through during editor teardown and `EDITOR -> FLIGHT` transitions
+- latest observed KSPCF summary: `20` `VesselAutopilotUI | OnGameSettingsApplied`, `16` `ModuleInventoryPart | onPartActionUICreate`, `16` `ModuleInventoryPart | onModuleInventoryChanged`, `2` `OnPartPurchased`, `2` `onEditorPartEvent`
+- latest code pass broadens `VesselAutopilotUI` cleanup to its `OnGameSettingsApplied`, `onVesselChange`, and `onKerbalLevelUp` subscriptions, and also sweeps those callbacks every frame
+- latest debug summaries show `NoMoreLeaks` is removing many `ModuleInventoryPart` callbacks itself, but KSPCF is still catching some destroyed owners later
+- current working theory is that inventory subscriptions are still slipping through during editor teardown and `EDITOR -> FLIGHT` transitions, while autopilot leaks are more sensitive to exact UI lifecycle timing during long sessions
+
+## Changelog
+
+If this keeps evolving past local testing, adding a `CHANGELOG.md` in the `Keep a Changelog` format would make the leak timeline easier to follow than commit history alone. The README already captures the higher-level trend; a changelog would be the right place for versioned patch notes and release-facing behavior changes.
 
 ## Build Notes
 

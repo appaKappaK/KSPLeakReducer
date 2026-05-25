@@ -6,9 +6,20 @@ namespace NoMoreLeaks.Patches
     [HarmonyPatch(typeof(CommNetVessel), "OnDestroy")]
     internal static class CommNetVesselLeakPatch
     {
+        private static void Prefix(CommNetVessel __instance)
+        {
+            Cleanup(__instance);
+        }
+
         private static void Postfix(CommNetVessel __instance)
         {
-            EventCleanup.RemoveGameEvent(GameEvents.onPlanetariumTargetChanged, __instance, "OnMapFocusChange");
+            Cleanup(__instance);
+        }
+
+        private static void Cleanup(CommNetVessel instance)
+        {
+            EventCleanup.RemoveOwner(GameEvents.onPlanetariumTargetChanged, instance);
+            EventCleanup.RemoveGameEvent(GameEvents.onPlanetariumTargetChanged, instance, "OnMapFocusChange");
         }
     }
 }

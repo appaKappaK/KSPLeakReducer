@@ -29,6 +29,7 @@ namespace NoMoreLeaks
         private void Update()
         {
             InventoryCallbackSweeper.SweepInventoryCallbacks();
+            InventoryCallbackSweeper.SweepAutopilotCallbacks();
 
             if (Time.realtimeSinceStartup < nextSweep) return;
 
