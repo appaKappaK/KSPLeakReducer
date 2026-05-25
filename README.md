@@ -4,6 +4,16 @@ Small KSP/Harmony patch plugin for stock `Assembly-CSharp` event callback leaks 
 
 This mod does not replace KSPCommunityFixes. It tries to prevent selected callbacks from remaining subscribed after their owning Unity object is destroyed, so KSPCF has less cleanup work to do later.
 
+## Versioning
+
+Current project version: `1.4.2`
+
+The project now follows a simple `MAJOR.MINOR.PATCH` scheme tied to the changelog and `GameData/NoMoreLeaks/NoMoreLeaks.version`:
+
+- `#.#.1` patch releases are small fixes, doc changes, and low-risk cleanup adjustments
+- `#.1.#` minor releases are medium leak-coverage passes or workflow improvements
+- `1.#.#` major releases mark larger architectural shifts in how the mod performs cleanup
+
 ## Install
 
 Copy the packaged folder into KSP `GameData`:
