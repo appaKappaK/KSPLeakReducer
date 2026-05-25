@@ -132,9 +132,9 @@ If that line never appears during gameplay, the sweeper did not catch any destro
 
 ## Observed Leak History
 
-Based on archived KSPCF summaries from `~/.local/share/Trash/files`, the repo `leak-sums/` folder, and the `memleaks/nomoreleaks-off` control run, the stock leak trend has been consistent enough to justify this mod.
+This section summarizes the leak pattern seen across archived KSPCF summaries from `~/.local/share/Trash/files`, the repo `leak-sums/` folder, and the `memleaks/nomoreleaks-off` control run. The point is not to preserve every session detail, but to show that the same stock callback families kept recurring across different play sessions and patch revisions.
 
-Recurring stock leak classes from the older trash reports:
+Recurring stock leak classes in the older archived reports:
 
 - `ModuleInventoryPart` inventory callbacks were the most persistent remaining stock issue: `866` removals each for `onPartActionUICreate` and `onModuleInventoryChanged` across `17` archived summary files.
 - `ModuleCargoPart | OnEVAConstructionMode` was the worst early stock leak: `4482` removals across `5` archived summary files.
@@ -142,7 +142,7 @@ Recurring stock leak classes from the older trash reports:
 - `OverlayGenerator`, `MapView`, `RunwayCollisionHandler`, `VesselAutopilotUI`, and `NavBallToggle` showed up in many early and mid-May runs, but usually at much lower counts than the inventory leaks.
 - `CommNetVessel | onPlanetariumTargetChange` stayed near `1` per run and `RealAntennas` entries were intentionally left out of this mod's scope.
 
-Short timeline:
+Condensed timeline:
 
 | Date | Source | Main stock leaks seen | Read |
 | --- | --- | --- | --- |
@@ -179,7 +179,7 @@ The main unresolved stock issues are now `VesselAutopilotUI` first and `ModuleIn
 
 ## Changelog
 
-If this keeps evolving past local testing, adding a `CHANGELOG.md` in the `Keep a Changelog` format would make the leak timeline easier to follow than commit history alone. The README already captures the higher-level trend; a changelog would be the right place for versioned patch notes and release-facing behavior changes.
+Project-level release notes now live in [CHANGELOG.md](CHANGELOG.md). The README keeps the higher-level leak history and current validation state, while the changelog is the better place for versioned patch notes.
 
 ## Build Notes
 
