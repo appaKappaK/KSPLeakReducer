@@ -7,15 +7,16 @@ namespace NoMoreLeaks
         internal static void Sweep()
         {
             int removed = 0;
-            removed += EventCleanup.RemoveDestroyedStockGameEventOwners();
-            removed += SweepInventoryCallbacks();
-            removed += SweepMapUiCallbacks();
-            removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onVesselChange, typeof(Expansions.Serenity.ModuleRobotArmScanner));
-            removed += EventCleanup.RemoveDestroyedOwnersByTypeName(GameEvents.onEditorShipModified, "PlanetarySurfaceStructures.ModuleKPBSCorridorNodes");
-            removed += RemoveDestroyedSpaceTrackingCallbacks();
+            removed += SweepCommonCallbacks();
+            LogSweep("Removed", removed);
+        }
 
-            if (removed > 0)
-                Debug.Log("[NoMoreLeaks] Removed " + removed + " destroyed callback owners");
+        internal static void SweepSceneUnload()
+        {
+            int removed = 0;
+            removed += SweepCommonCallbacks();
+            removed += SweepTimingManagerCallbacks();
+            LogSweep("Scene-unload removed", removed);
         }
 
         internal static int SweepInventoryCallbacks()
@@ -52,10 +53,6 @@ namespace NoMoreLeaks
             removed += EventCleanup.RemoveDestroyedStaticDelegateOwners(typeof(MapView), "OnEnterMapView", typeof(OverlayGenerator));
             removed += EventCleanup.RemoveDestroyedStaticDelegateOwners(typeof(MapView), "OnExitMapView", typeof(OverlayGenerator));
 
-            object timingManager = EventCleanup.GetStaticMember(typeof(TimingManager), "Instance");
-            object timing5 = EventCleanup.GetInstanceField(timingManager, "timing5");
-            removed += EventCleanup.RemoveDestroyedDelegateMemberOwners(timing5, "onLateUpdate");
-
             return removed;
         }
 
@@ -82,6 +79,50 @@ namespace NoMoreLeaks
             }
 
             return removed;
+        }
+
+        private static int SweepCommonCallbacks()
+        {
+            int removed = 0;
+            removed += EventCleanup.RemoveDestroyedStockGameEventOwners();
+            removed += SweepInventoryCallbacks();
+            removed += SweepMapUiCallbacks();
+            removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onVesselChange, typeof(Expansions.Serenity.ModuleRobotArmScanner));
+            removed += EventCleanup.RemoveDestroyedOwnersByTypeName(GameEvents.onEditorShipModified, "PlanetarySurfaceStructures.ModuleKPBSCorridorNodes");
+            removed += RemoveDestroyedSpaceTrackingCallbacks();
+            return removed;
+        }
+
+        private static int SweepTimingManagerCallbacks()
+        {
+            object timingManager = EventCleanup.GetStaticMember(typeof(TimingManager), "Instance");
+            if (timingManager == null) return 0;
+
+            int removed = 0;
+            removed += EventCleanup.RemoveDestroyedDelegateMembers(timingManager, "TimingManager.Instance");
+            removed += RemoveTimingBucketCallbacks(timingManager, "timing0");
+            removed += RemoveTimingBucketCallbacks(timingManager, "timing1");
+            removed += RemoveTimingBucketCallbacks(timingManager, "timing2");
+            removed += RemoveTimingBucketCallbacks(timingManager, "timing3");
+            removed += RemoveTimingBucketCallbacks(timingManager, "timing4");
+            removed += RemoveTimingBucketCallbacks(timingManager, "timing5");
+            removed += RemoveTimingBucketCallbacks(timingManager, "timingPre");
+            removed += RemoveTimingBucketCallbacks(timingManager, "timingFI");
+            return removed;
+        }
+
+        private static int RemoveTimingBucketCallbacks(object timingManager, string fieldName)
+        {
+            object timingBucket = EventCleanup.GetInstanceField(timingManager, fieldName);
+            return timingBucket != null
+                ? EventCleanup.RemoveDestroyedDelegateMembers(timingBucket, "TimingManager.Instance." + fieldName)
+                : 0;
+        }
+
+        private static void LogSweep(string action, int removed)
+        {
+            if (removed > 0)
+                Debug.Log("[NoMoreLeaks] " + action + " " + removed + " destroyed callback owners");
         }
     }
 }

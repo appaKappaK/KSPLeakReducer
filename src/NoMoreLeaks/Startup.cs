@@ -1,5 +1,6 @@
 using HarmonyLib;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace NoMoreLeaks
 {
@@ -16,8 +17,14 @@ namespace NoMoreLeaks
             DontDestroyOnLoad(gameObject);
             NoMoreLeaksSettings.Load();
             new Harmony(HarmonyId).PatchAll();
+            SceneManager.sceneUnloaded += OnSceneUnloaded;
             Debug.Log("[NoMoreLeaks] Harmony patches applied");
             InventoryCallbackSweeper.Sweep();
+        }
+
+        private void OnDestroy()
+        {
+            SceneManager.sceneUnloaded -= OnSceneUnloaded;
         }
 
         private void OnLevelWasLoaded(int level)
@@ -35,6 +42,11 @@ namespace NoMoreLeaks
 
             nextSweep = Time.realtimeSinceStartup + SweepInterval;
             InventoryCallbackSweeper.Sweep();
+        }
+
+        private void OnSceneUnloaded(Scene scene)
+        {
+            InventoryCallbackSweeper.SweepSceneUnload();
         }
     }
 }

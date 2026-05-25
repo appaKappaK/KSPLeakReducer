@@ -18,6 +18,8 @@ namespace NoMoreLeaks.Patches
 
         private static void Cleanup(CommNetVessel instance)
         {
+            EventCleanup.RemoveOwner(GameEvents.CommNet.OnNetworkInitialized, instance);
+            EventCleanup.RemoveGameEvent(GameEvents.CommNet.OnNetworkInitialized, instance, "OnNetworkInitialized");
             EventCleanup.RemoveOwner(GameEvents.onPlanetariumTargetChanged, instance);
             EventCleanup.RemoveGameEvent(GameEvents.onPlanetariumTargetChanged, instance, "OnMapFocusChange");
         }

@@ -6,7 +6,7 @@ This mod does not replace KSPCommunityFixes. It tries to prevent selected callba
 
 ## Versioning
 
-Current project version: `1.4.2`
+Current project version: `1.5.0`
 
 The project now follows a simple `MAJOR.MINOR.PATCH` scheme tied to the changelog and `GameData/NoMoreLeaks/NoMoreLeaks.version`:
 
@@ -84,18 +84,25 @@ Stock KSP / DLC callback owners:
 - `KerbalEVA | OnROCExperimentReset`
 - `EVAConstructionModeEditor | OnClick`
 - `RunwayCollisionHandler | OnDestructibleLoaded`
+- `StageGroup | onDeltaVAppAtmosphereChanged`
+- `StageGroup | onDeltaVAppInfoItemsChanged`
 - `BuildingPickerItem | OnInViewChange`
 - `BuildingPickerItem | OnClick`
+- `ModuleProceduralFairing | onVariantApplied`
+- `ModuleProceduralFairing | onVariantsAdded`
 - `OverlayGenerator | onPlanetariumTargetChange`
 - `OverlayGenerator | onGameStateLoad`
 - `OverlayGenerator | MapView.OnEnterMapView`
 - `OverlayGenerator | MapView.OnExitMapView`
-- `MapView | TimingManager.Instance.timing5.onLateUpdate`
+- `TimingManager.Instance.(timing0..5/timingPre/timingFI) | destroyed stock delegate owners`
 - `VesselAutopilotUI | OnGameSettingsApplied`
 - `VesselAutopilotUI | onVesselChange`
 - `VesselAutopilotUI | onKerbalLevelUp`
 - `NavBallToggle | OnMapExited`
 - `InternalNavBall | onVesselChange`
+- `PartSet | onPartResourceFlowStateChange`
+- `PartSet | onPartResourceFlowModeChange`
+- `CommNetVessel | CommNet.OnNetworkInitialized`
 - `CommNetVessel | onPlanetariumTargetChange`
 - `SpaceTracking | OnVesselIconClicked`
 - `SpaceTracking | OnMapViewFiltersModified`
@@ -112,19 +119,19 @@ Optional third-party cleanup currently covered:
 
 ## How It Works
 
-The plugin uses Harmony patches on known stock teardown paths such as module `OnDestroy()`, `Part.OnDestroy`, `Part.OnDelete`, `Part.RemoveModule`, and `Part.RemoveModules`.
+The plugin uses Harmony patches on known stock teardown paths such as module `OnDestroy()`, `Vessel.Unload()`, `Part.OnDestroy`, `Part.OnDelete`, `Part.RemoveModule`, and `Part.RemoveModules`.
 
-It also runs a persistent sweeper from a `DontDestroyOnLoad` KSP addon. The broad stock sweep runs on scene load and on a timed interval, while low-cost hot-path cleanup for `ModuleInventoryPart` and `VesselAutopilotUI` now runs every frame so scene transitions like `EDITOR -> FLIGHT` have fewer chances to strand subscriptions.
+It also runs a persistent sweeper from a `DontDestroyOnLoad` KSP addon. The broad stock sweep runs on scene load and on a timed interval, a stronger scene-unload sweep cleans generic stock `GameEvents` and delegate leftovers, and low-cost hot-path cleanup for `ModuleInventoryPart` and `VesselAutopilotUI` runs every frame so scene transitions like `EDITOR -> FLIGHT` have fewer chances to strand subscriptions.
 
 Some fixes are direct lifecycle patches. For example, `ModuleRobotArmScanner` hides `ModuleDeployablePart.OnDestroy()`, so the base `onVesselChange` unsubscribe can be skipped unless patched directly.
 
 Tracking-station cleanup also sweeps vessel `OrbitRenderer.onVesselIconClicked` callbacks, because `SpaceTracking` registers per-vessel icon callbacks outside the central `GameEvents` list.
 
-Map-view cleanup also removes destroyed owners from static `MapView.OnEnterMapView` / `MapView.OnExitMapView` delegates and `TimingManager.Instance.timing5.onLateUpdate`, because long flight sessions were repeatedly accumulating `OverlayGenerator` and `MapView` UI objects.
+Map-view cleanup also removes destroyed owners from static `MapView.OnEnterMapView` / `MapView.OnExitMapView` delegates. The scene-unload pass now also scans `TimingManager.Instance` and the stock timing buckets (`timing0` through `timing5`, `timingPre`, and `timingFI`) for destroyed stock delegate targets, following the same broad category of leftovers KSPCF catches on scene exit.
 
 ## Validation
 
-Use KSPCF memory leak logging and compare the exported summary before and after a run. The helper script under `memleaks/export-ksp-memleaks.sh` now exports timestamped files by default so repeated runs do not overwrite each other:
+Use KSPCF memory leak logging and compare the exported summaries before and after a run. The helper script under `memleaks/export-ksp-memleaks.sh` writes timestamped files by default so repeated exports do not overwrite each other:
 
 - `KSPCF-memory-leaks-raw.txt`
 - `KSPCF-memory-leaks-summary.txt`
@@ -132,7 +139,7 @@ Use KSPCF memory leak logging and compare the exported summary before and after 
 - `NoMoreLeaks-debug-raw.txt`
 - `NoMoreLeaks-debug-summary.txt`
 
-Expected improvement is that covered callback owners either disappear from the KSPCF summary or drop significantly. If a covered owner still appears, check `KSP.log` for:
+The expected result is that covered callback owners either disappear from the KSPCF summary or drop substantially. If a covered owner still appears, check `KSP.log` for:
 
 ```text
 [NoMoreLeaks] Removed
@@ -140,52 +147,61 @@ Expected improvement is that covered callback owners either disappear from the K
 
 If that line never appears during gameplay, the sweeper did not catch any destroyed owners before KSPCF did. If the debug files are empty, confirm `GameData/NoMoreLeaks/NoMoreLeaks.cfg` is present in the live install.
 
+Scene transitions may also log:
+
+```text
+[NoMoreLeaks] Scene-unload removed N destroyed callback owners
+```
+
+That indicates the stronger scene-exit sweep caught leftovers that survived until scene teardown.
+
 ## Observed Leak History
 
-This section summarizes the leak pattern seen across archived KSPCF summaries from `~/.local/share/Trash/files`, the repo `leak-sums/` folder, and the `memleaks/nomoreleaks-off` control run. The point is not to preserve every session detail, but to show that the same stock callback families kept recurring across different play sessions and patch revisions.
+This section condenses the leak patterns seen across older KSPCF exports, the checked-in `leak-sums/` snapshots, and the `NoMoreLeaks` off control run. It is meant to show the recurring stock callback families that kept resurfacing across different sessions and patch revisions, not to preserve every individual test run.
 
 Recurring stock leak classes in the older archived reports:
 
-- `ModuleInventoryPart` inventory callbacks were the most persistent remaining stock issue: `866` removals each for `onPartActionUICreate` and `onModuleInventoryChanged` across `17` archived summary files.
-- `ModuleCargoPart | OnEVAConstructionMode` was the worst early stock leak: `4482` removals across `5` archived summary files.
-- `ModuleDeployableSolarPanel | onVesselChange` appeared repeatedly: `232` removals across `10` archived summary files.
-- `OverlayGenerator`, `MapView`, `RunwayCollisionHandler`, `VesselAutopilotUI`, and `NavBallToggle` showed up in many early and mid-May runs, but usually at much lower counts than the inventory leaks.
-- `CommNetVessel | onPlanetariumTargetChange` stayed near `1` per run and `RealAntennas` entries were intentionally left out of this mod's scope.
+- `ModuleInventoryPart` inventory callbacks were the most persistent remaining stock issue, with `866` removals each for `onPartActionUICreate` and `onModuleInventoryChanged` across `17` archived summary files.
+- `ModuleCargoPart | OnEVAConstructionMode` was the largest early stock leak, with `4482` removals across `5` archived summary files.
+- `ModuleDeployableSolarPanel | onVesselChange` appeared repeatedly, with `232` removals across `10` archived summary files.
+- `OverlayGenerator`, `MapView`, `RunwayCollisionHandler`, `VesselAutopilotUI`, and `NavBallToggle` appeared in many early and mid-May runs, though usually at much lower counts than the inventory leaks.
+- `CommNetVessel | onPlanetariumTargetChange` stayed near `1` per run, and `RealAntennas` entries were intentionally left outside this mod's scope.
 
 Condensed timeline:
 
-| Date | Source | Main stock leaks seen | Read |
+| Date | Source | Main stock leaks seen | Summary |
 | --- | --- | --- | --- |
-| 2026-05-16 | archived trash baseline | `ModuleCargoPart` `2124`, `ModuleDeployableSolarPanel` `73`, `ModuleInventoryPart` `63/63`, plus overlay/map/autopilot/navball leaks | very noisy stock baseline |
-| 2026-05-17 | archived trash runs | inventory leaks dominated many runs at `15` to `59`; some runs still showed ground science, overlay/map, control surface, and EVA editor leaks | partial improvement, not stable |
-| 2026-05-18 | archived trash runs | inventory leaks spiked again up to `221/221`, with `OnPartPurchased` and `onEditorPartEvent` at `95` each; `UIPartActionInventorySlot` and `ModuleRobotArmScanner` also appeared | clear regression around inventory teardown |
-| 2026-05-20 | repo `leak-sums/5-20-26` | only `VesselAutopilotUI`, `CommNetVessel`, and `RealAntennas` remained | best observed stock result so far |
-| 2026-05-21 to 2026-05-23 | repo `leak-sums/` | `ModuleInventoryPart` returned strongly (`28` to `85`), `UIPartActionInventorySlot` reached `50/50`, `VesselAutopilotUI` stayed present, and `SpaceTracking` / `InternalNavBall` showed up in the worst run on `2026-05-23` | current focus area that drove the newer sweeper changes |
-| 2026-05-24 | repo `memleaks/5-24-26*` | inventory-heavy editor runs ranged from `45/45` up to `78/78`; `UIPartActionInventorySlot`, `SpaceTracking`, and `InternalNavBall` were reduced by newer patches | inventory timing still unstable, but broader stock coverage improved |
-| 2026-05-25 early | repo `memleaks/NEW LEAKS SUMMARY` long-flight run | `OverlayGenerator`, `MapView`, `NavBallToggle`, and `VesselAutopilotUI` became the dominant stock leaks during a long orbital session, while `ModuleInventoryPart` was low at `6/6` | long-flight map/UI leak cluster identified |
-| 2026-05-25 midday | repo `memleaks/NEW LEAKS SUMMARY` after map/UI fixes | `OverlayGenerator`, `MapView`, `NavBallToggle`, `SpaceTracking`, `InternalNavBall`, `BuildingPickerItem`, and `EVAConstructionModeEditor` disappeared from the KSPCF summary; `ModuleInventoryPart` regressed to `69/69` with `19/19` on purchased/editor events | map/UI work paid off, inventory remained the main persistent stock leak |
-| 2026-05-25 latest | repo `memleaks/NEW LEAKS SUMMARY` longer session after tighter inventory sweeps | `ModuleInventoryPart` improved again to `16/16` with `2/2` on purchased/editor events; `VesselAutopilotUI` rose to `20`; map/UI leak cluster stayed gone | inventory timing improved again, `VesselAutopilotUI` became the top remaining stock issue |
+| 2026-05-16 | archived trash baseline | `ModuleCargoPart` `2124`, `ModuleDeployableSolarPanel` `73`, `ModuleInventoryPart` `63/63`, plus overlay/map/autopilot/navball leaks | Broad stock leak baseline before the newer cleanup work |
+| 2026-05-17 | archived trash runs | inventory leaks dominated many runs at `15` to `59`; some runs still showed ground science, overlay/map, control surface, and EVA editor leaks | Partial improvement, but not yet stable |
+| 2026-05-18 | archived trash runs | inventory leaks spiked again up to `221/221`, with `OnPartPurchased` and `onEditorPartEvent` at `95` each; `UIPartActionInventorySlot` and `ModuleRobotArmScanner` also appeared | Clear regression around inventory teardown |
+| 2026-05-20 | repo `leak-sums/5-20-26` | only `VesselAutopilotUI`, `CommNetVessel`, and `RealAntennas` remained | Best stock-focused result observed in the early runs |
+| 2026-05-21 to 2026-05-23 | repo `leak-sums/` | `ModuleInventoryPart` returned strongly (`28` to `85`), `UIPartActionInventorySlot` reached `50/50`, `VesselAutopilotUI` stayed present, and `SpaceTracking` / `InternalNavBall` showed up in the worst run on `2026-05-23` | Inventory and stock UI leaks became the next main focus |
+| 2026-05-24 | repo `memleaks/5-24-26*` | inventory-heavy editor runs ranged from `45/45` up to `78/78`; `UIPartActionInventorySlot`, `SpaceTracking`, and `InternalNavBall` were reduced by newer patches | Broader stock coverage improved, but inventory timing remained unstable |
+| 2026-05-25 early | repo `memleaks/NEW LEAKS SUMMARY` long-flight run | `OverlayGenerator`, `MapView`, `NavBallToggle`, and `VesselAutopilotUI` became the dominant stock leaks during a long orbital session, while `ModuleInventoryPart` was low at `6/6` | Long-flight map/UI leak cluster identified |
+| 2026-05-25 midday | repo `memleaks/NEW LEAKS SUMMARY` after map/UI fixes | `OverlayGenerator`, `MapView`, `NavBallToggle`, `SpaceTracking`, `InternalNavBall`, `BuildingPickerItem`, and `EVAConstructionModeEditor` disappeared from the KSPCF summary; `ModuleInventoryPart` regressed to `69/69` with `19/19` on purchased/editor events | Map/UI work paid off, but inventory remained the dominant stock leak |
+| 2026-05-25 latest | repo `memleaks/NEW LEAKS SUMMARY` longer session after tighter inventory sweeps | `ModuleInventoryPart` improved again to `16/16` with `2/2` on purchased/editor events; `VesselAutopilotUI` rose to `20`; map/UI leak cluster stayed gone | Inventory timing improved again, leaving `VesselAutopilotUI` as the top remaining stock issue |
 
 Control comparison:
 
 - With `NoMoreLeaks` off, the `memleaks/nomoreleaks-off` summary still showed broad stock leaks on `2026-05-24`, led by `ModuleGroundExperiment`, `ModuleInventoryPart`, `ModuleGroundPart`, `ModuleDeployableSolarPanel`, `OverlayGenerator`, and `VesselAutopilotUI`.
-- That control run matters because it shows the goal of this mod is still valid: the stock game is retaining destroyed callback owners on its own, and the remaining work is about narrowing that list, not proving the problem exists.
+- That control run matters because it confirms the underlying stock problem still exists without the mod. The remaining work is about shrinking the leak list, not proving that the stock game leaks in the first place.
 
 ## Current State
 
 As of `2026-05-25`, the mod has materially improved several stock leak classes:
 
-- long-flight `OverlayGenerator` / `MapView` / `NavBallToggle` leaks were reduced out of the KSPCF summary after dedicated map/UI cleanup was added
-- `SpaceTracking`, `InternalNavBall`, `BuildingPickerItem`, and `EVAConstructionModeEditor` are now much less prominent than in the earlier worst runs
-- the plugin is actively removing the targeted callbacks, confirmed by `NoMoreLeaks-debug-summary.txt`
-- `ModuleInventoryPart` has come down substantially from its `69/69/19/19` regression to `16/16/2/2` in the latest longer-session export
+- Long-flight `OverlayGenerator` / `MapView` / `NavBallToggle` leaks were reduced out of the KSPCF summary after dedicated map/UI cleanup was added.
+- `SpaceTracking`, `InternalNavBall`, `BuildingPickerItem`, and `EVAConstructionModeEditor` are now much less prominent than in the earlier worst runs.
+- The plugin is actively removing the targeted callbacks, as confirmed by `NoMoreLeaks-debug-summary.txt`.
+- `ModuleInventoryPart` has come down substantially from its `69/69/19/19` regression to `16/16/2/2` in the latest longer-session export.
+- The current `1.5.0` code pass adds a KSPCF-inspired scene-unload sweep, broader `TimingManager` cleanup, and a few additional stock handlers, but that specific pass has not yet been validated with a fresh leak export.
 
 The main unresolved stock issues are now `VesselAutopilotUI` first and `ModuleInventoryPart` second:
 
-- latest observed KSPCF summary: `20` `VesselAutopilotUI | OnGameSettingsApplied`, `16` `ModuleInventoryPart | onPartActionUICreate`, `16` `ModuleInventoryPart | onModuleInventoryChanged`, `2` `OnPartPurchased`, `2` `onEditorPartEvent`
-- latest code pass broadens `VesselAutopilotUI` cleanup to its `OnGameSettingsApplied`, `onVesselChange`, and `onKerbalLevelUp` subscriptions, and also sweeps those callbacks every frame
-- latest debug summaries show `NoMoreLeaks` is removing many `ModuleInventoryPart` callbacks itself, but KSPCF is still catching some destroyed owners later
-- current working theory is that inventory subscriptions are still slipping through during editor teardown and `EDITOR -> FLIGHT` transitions, while autopilot leaks are more sensitive to exact UI lifecycle timing during long sessions
+- Latest observed KSPCF summary: `20` `VesselAutopilotUI | OnGameSettingsApplied`, `16` `ModuleInventoryPart | onPartActionUICreate`, `16` `ModuleInventoryPart | onModuleInventoryChanged`, `2` `OnPartPurchased`, `2` `onEditorPartEvent`.
+- The latest code passes broaden `VesselAutopilotUI` cleanup to its `OnGameSettingsApplied`, `onVesselChange`, and `onKerbalLevelUp` subscriptions, sweep those callbacks every frame, and add a stronger scene-unload cleanup path modeled after the installed KSPCF leak fixer.
+- Latest debug summaries show `NoMoreLeaks` is removing many `ModuleInventoryPart` callbacks itself, but KSPCF is still catching some destroyed owners later.
+- The current working theory is that inventory subscriptions are still slipping through during editor teardown and `EDITOR -> FLIGHT` transitions, while autopilot leaks are more sensitive to exact UI lifecycle timing during long sessions.
 
 ## Changelog
 

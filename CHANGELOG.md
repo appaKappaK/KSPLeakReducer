@@ -14,6 +14,19 @@ Older entries below were reconstructed from commit history and testing notes so 
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-05-25
+
+### Added
+
+- Scene-unload sweeping for `NoMoreLeaks`, including broad stock callback cleanup at scene teardown.
+- Full `TimingManager.Instance` bucket scanning for destroyed stock delegate owners across `timing0` through `timing5`, `timingPre`, and `timingFI`.
+- Stock cleanup patches for `StageGroup`, `ModuleProceduralFairing`, and vessel resource-flow `PartSet` callback owners.
+
+### Changed
+
+- `CommNetVessel` cleanup now also removes `CommNet.OnNetworkInitialized` subscriptions.
+- `README.md` now documents the scene-unload sweep, broader timing-manager coverage, and the current validation caveat for this pass.
+
 ## [1.4.2] - 2026-05-25
 
 ### Changed
