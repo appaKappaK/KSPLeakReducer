@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
@@ -20,6 +21,8 @@ namespace NoMoreLeaks
         internal static void RemoveGameEvent(object eventSource, object owner, Type handlerDeclaringType, string methodName)
         {
             if (eventSource == null || owner == null) return;
+
+            int beforeCount = GetEventEntryCount(eventSource);
 
             MethodInfo handlerMethod = handlerDeclaringType != null
                 ? handlerDeclaringType.GetMethod(methodName, AnyInstance)
@@ -48,6 +51,11 @@ namespace NoMoreLeaks
             }
 
             removeMethod.Invoke(eventSource, new object[] { handler });
+
+            int afterCount = GetEventEntryCount(eventSource);
+            int removed = beforeCount >= 0 && afterCount >= 0 ? beforeCount - afterCount : 0;
+            if (removed > 0)
+                LogRemoval("RemoveGameEvent", DescribeEventSource(eventSource), owner.GetType(), removed);
         }
 
         internal static void RemoveInstanceEventField(object source, string fieldName, object owner, string methodName)
@@ -92,7 +100,50 @@ namespace NoMoreLeaks
                 return;
             }
 
+            int beforeCount = current.GetInvocationList().Length;
             field.SetValue(null, Delegate.Remove(current, handler));
+            Delegate updated = field.GetValue(null) as Delegate;
+            int afterCount = updated != null ? updated.GetInvocationList().Length : 0;
+            int removed = beforeCount - afterCount;
+            if (removed > 0)
+                LogRemoval("RemoveStaticDelegateField", type.FullName + "." + fieldName, owner.GetType(), removed);
+        }
+
+        internal static int RemoveDestroyedStaticDelegateOwners(Type type, string fieldName, Type ownerType)
+        {
+            if (type == null || string.IsNullOrEmpty(fieldName) || ownerType == null) return 0;
+
+            FieldInfo field = type.GetField(fieldName, AnyStatic);
+            if (field == null)
+            {
+                Debug.LogWarning("[NoMoreLeaks] Missing static delegate field " + type.FullName + "." + fieldName);
+                return 0;
+            }
+
+            Delegate current = field.GetValue(null) as Delegate;
+            if (current == null) return 0;
+
+            Delegate cleaned = current;
+            int removed = 0;
+            foreach (Delegate callback in current.GetInvocationList())
+            {
+                object target = callback.Target;
+                Type targetType = target != null ? target.GetType() : null;
+                if (!OwnerMatches(ownerType, target, targetType != null ? targetType.FullName : null)) continue;
+
+                UnityEngine.Object unityObject = target as UnityEngine.Object;
+                bool isDestroyedUnityObject = !ReferenceEquals(unityObject, null) && unityObject == null;
+                if (target != null && !isDestroyedUnityObject) continue;
+
+                cleaned = Delegate.Remove(cleaned, callback);
+                removed++;
+            }
+
+            if (removed == 0) return 0;
+
+            field.SetValue(null, cleaned);
+            LogRemoval("RemoveDestroyedStaticDelegateOwners", type.FullName + "." + fieldName, ownerType, removed);
+            return removed;
         }
 
         internal static void RemoveDelegatesOwnedBy(object eventOwner, string delegatePropertyName, object callbackOwner)
@@ -110,10 +161,14 @@ namespace NoMoreLeaks
             if (current == null) return;
 
             Delegate cleaned = current;
+            int removed = 0;
             foreach (Delegate callback in current.GetInvocationList())
             {
                 if (ReferenceEquals(callback.Target, callbackOwner))
+                {
                     cleaned = Delegate.Remove(cleaned, callback);
+                    removed++;
+                }
             }
 
             if (property != null)
@@ -122,6 +177,9 @@ namespace NoMoreLeaks
                 field.SetValue(eventOwner, cleaned);
             else
                 Debug.LogWarning("[NoMoreLeaks] Missing delegate member " + type.FullName + "." + delegatePropertyName);
+
+            if (removed > 0)
+                LogRemoval("RemoveDelegatesOwnedBy", type.FullName + "." + delegatePropertyName, callbackOwner.GetType(), removed);
         }
 
         internal static int RemoveDestroyedOwners(object eventSource, Type ownerType)
@@ -162,6 +220,9 @@ namespace NoMoreLeaks
                 events.RemoveAt(i);
                 removed++;
             }
+
+            if (removed > 0)
+                LogRemoval("RemoveDestroyedOwners", DescribeEventSource(eventSource), ownerType, removed);
 
             return removed;
         }
@@ -208,6 +269,9 @@ namespace NoMoreLeaks
                 removed++;
             }
 
+            if (removed > 0)
+                LogRemoval("RemoveDestroyedOwnersByTypeName", DescribeEventSource(eventSource), ownerTypeName, removed);
+
             return removed;
         }
 
@@ -244,6 +308,9 @@ namespace NoMoreLeaks
                 removed++;
             }
 
+            if (removed > 0)
+                LogRemoval("RemoveOwner", DescribeEventSource(eventSource), owner.GetType(), removed);
+
             return removed;
         }
 
@@ -278,12 +345,23 @@ namespace NoMoreLeaks
 
             Delegate cleaned = current;
             int removed = 0;
+            Dictionary<string, int> removedByType = NoMoreLeaksSettings.VerboseDebugLogging
+                ? new Dictionary<string, int>()
+                : null;
             foreach (Delegate callback in current.GetInvocationList())
             {
                 if (!IsDestroyedAssemblyOwnedUnityObject(callback.Target, StockAssembly)) continue;
 
                 cleaned = Delegate.Remove(cleaned, callback);
                 removed++;
+
+                if (removedByType != null && callback.Target != null)
+                {
+                    string ownerTypeName = FormatTypeName(callback.Target.GetType());
+                    int currentCount;
+                    removedByType.TryGetValue(ownerTypeName, out currentCount);
+                    removedByType[ownerTypeName] = currentCount + 1;
+                }
             }
 
             if (removed == 0) return 0;
@@ -292,6 +370,13 @@ namespace NoMoreLeaks
                 property.SetValue(source, cleaned, null);
             else if (field != null)
                 field.SetValue(source, cleaned);
+
+            if (removedByType != null)
+            {
+                string eventName = type.FullName + "." + delegateMemberName;
+                foreach (KeyValuePair<string, int> entry in removedByType)
+                    LogRemoval("RemoveDestroyedDelegateMemberOwners", eventName, entry.Key, entry.Value);
+            }
 
             return removed;
         }
@@ -307,6 +392,9 @@ namespace NoMoreLeaks
             if (events == null) return 0;
 
             int removed = 0;
+            Dictionary<string, int> removedByType = NoMoreLeaksSettings.VerboseDebugLogging
+                ? new Dictionary<string, int>()
+                : null;
             for (int i = events.Count - 1; i >= 0; i--)
             {
                 object eventEntry = events[i];
@@ -315,10 +403,26 @@ namespace NoMoreLeaks
                 FieldInfo originatorField = AccessTools.Field(eventEntry.GetType(), "originator");
                 if (originatorField == null) continue;
 
-                if (!IsDestroyedAssemblyOwnedUnityObject(originatorField.GetValue(eventEntry), assembly)) continue;
+                object originator = originatorField.GetValue(eventEntry);
+                if (!IsDestroyedAssemblyOwnedUnityObject(originator, assembly)) continue;
 
                 events.RemoveAt(i);
                 removed++;
+
+                if (removedByType != null)
+                {
+                    string ownerTypeName = FormatTypeName(originator.GetType());
+                    int currentCount;
+                    removedByType.TryGetValue(ownerTypeName, out currentCount);
+                    removedByType[ownerTypeName] = currentCount + 1;
+                }
+            }
+
+            if (removedByType != null)
+            {
+                string eventName = DescribeEventSource(eventSource);
+                foreach (KeyValuePair<string, int> entry in removedByType)
+                    LogRemoval("RemoveDestroyedStockGameEventOwners", eventName, entry.Key, entry.Value);
             }
 
             return removed;
@@ -385,6 +489,51 @@ namespace NoMoreLeaks
 
             FieldInfo field = type.GetField(memberName, AnyStatic);
             return field != null ? field.GetValue(null) : null;
+        }
+
+        private static int GetEventEntryCount(object eventSource)
+        {
+            if (eventSource == null) return -1;
+
+            FieldInfo eventsField = AccessTools.Field(eventSource.GetType(), "events");
+            if (eventsField == null) return -1;
+
+            IList events = eventsField.GetValue(eventSource) as IList;
+            return events != null ? events.Count : -1;
+        }
+
+        private static string DescribeEventSource(object eventSource)
+        {
+            if (eventSource == null) return "<null>";
+
+            BaseGameEvent gameEvent = eventSource as BaseGameEvent;
+            if (gameEvent != null) return gameEvent.EventName;
+
+            Type type = eventSource.GetType();
+            return type.FullName ?? type.Name;
+        }
+
+        private static string FormatTypeName(Type type)
+        {
+            if (type == null) return "<null>";
+
+            string assemblyName = type.Assembly.GetName().Name;
+            if (type.IsNested && type.DeclaringType != null)
+                return assemblyName + ":" + type.DeclaringType.Name + "." + type.Name;
+
+            return assemblyName + ":" + type.Name;
+        }
+
+        private static void LogRemoval(string strategy, string eventName, Type ownerType, int removed)
+        {
+            LogRemoval(strategy, eventName, FormatTypeName(ownerType), removed);
+        }
+
+        private static void LogRemoval(string strategy, string eventName, string ownerTypeName, int removed)
+        {
+            if (!NoMoreLeaksSettings.VerboseDebugLogging || removed <= 0) return;
+
+            Debug.Log("[NoMoreLeaks:Debug] Removed " + removed + " callback(s) from " + eventName + " owned by " + ownerTypeName + " via " + strategy);
         }
 
         private static MethodInfo FindSingleDelegateParameterMethod(Type type, string name)

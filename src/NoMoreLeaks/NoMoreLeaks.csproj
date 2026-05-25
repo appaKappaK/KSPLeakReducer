@@ -35,6 +35,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <Compile Include="Startup.cs" />
+    <Compile Include="NoMoreLeaksSettings.cs" />
     <Compile Include="EventCleanup.cs" />
     <Compile Include="InventoryCallbackSweeper.cs" />
     <Compile Include="Patches\BuildingPickerItemLeakPatch.cs" />
@@ -49,6 +50,7 @@
     <Compile Include="Patches\NavBallToggleLeakPatch.cs" />
     <Compile Include="Patches\EVAConstructionModeEditorLeakPatch.cs" />
     <Compile Include="Patches\EditorInventorySweepPatch.cs" />
+    <Compile Include="Patches\InternalNavBallLeakPatch.cs" />
     <Compile Include="Patches\KerbalEVALeakPatch.cs" />
     <Compile Include="Patches\OverlayGeneratorLeakPatch.cs" />
     <Compile Include="Patches\PartModuleLifecycleLeakPatch.cs" />

@@ -8,6 +8,7 @@ namespace NoMoreLeaks.Patches
         private static void Postfix()
         {
             if (!HighLogic.LoadedSceneIsEditor) return;
+            NoMoreLeaksSettings.LogDebug("Editor sweep via EditorLogic.SetBackup.Postfix");
             InventoryCallbackSweeper.Sweep();
         }
     }
@@ -19,17 +20,28 @@ namespace NoMoreLeaks.Patches
         {
             if (part == null) return;
 
-            PartModuleLifecycleLeakPatch.CleanupPartModules(part);
-
-            if (part.children == null) return;
-            for (int i = 0; i < part.children.Count; i++)
-                PartModuleLifecycleLeakPatch.CleanupPartModules(part.children[i]);
+            NoMoreLeaksSettings.LogDebug("Editor delete requested for " + DescribePart(part));
+            PartModuleLifecycleLeakPatch.CleanupPartModules(part, "EditorLogic.DeletePart.Prefix");
         }
 
         private static void Postfix()
         {
             if (!HighLogic.LoadedSceneIsEditor) return;
+            NoMoreLeaksSettings.LogDebug("Editor sweep via EditorLogic.DeletePart.Postfix");
             InventoryCallbackSweeper.Sweep();
+        }
+
+        private static string DescribePart(Part part)
+        {
+            if (part == null) return "<null>";
+
+            string partName = !string.IsNullOrEmpty(part.partInfo?.title)
+                ? part.partInfo.title
+                : !string.IsNullOrEmpty(part.partName)
+                    ? part.partName
+                    : part.name;
+            int childCount = part.children != null ? part.children.Count : 0;
+            return partName + " (children=" + childCount + ", hasParent=" + (part.parent != null) + ")";
         }
     }
 
@@ -41,17 +53,28 @@ namespace NoMoreLeaks.Patches
             if (EditorLogic.SelectedPart == null) return;
 
             Part selectedPart = EditorLogic.SelectedPart;
-            PartModuleLifecycleLeakPatch.CleanupPartModules(selectedPart);
-
-            if (selectedPart.children == null) return;
-            for (int i = 0; i < selectedPart.children.Count; i++)
-                PartModuleLifecycleLeakPatch.CleanupPartModules(selectedPart.children[i]);
+            NoMoreLeaksSettings.LogDebug("Editor destroy-selected requested for " + DescribePart(selectedPart));
+            PartModuleLifecycleLeakPatch.CleanupPartModules(selectedPart, "EditorLogic.DestroySelectedPart.Prefix");
         }
 
         private static void Postfix()
         {
             if (!HighLogic.LoadedSceneIsEditor) return;
+            NoMoreLeaksSettings.LogDebug("Editor sweep via EditorLogic.DestroySelectedPart.Postfix");
             InventoryCallbackSweeper.Sweep();
+        }
+
+        private static string DescribePart(Part part)
+        {
+            if (part == null) return "<null>";
+
+            string partName = !string.IsNullOrEmpty(part.partInfo?.title)
+                ? part.partInfo.title
+                : !string.IsNullOrEmpty(part.partName)
+                    ? part.partName
+                    : part.name;
+            int childCount = part.children != null ? part.children.Count : 0;
+            return partName + " (children=" + childCount + ", hasParent=" + (part.parent != null) + ")";
         }
     }
 }

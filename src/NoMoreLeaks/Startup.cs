@@ -14,6 +14,7 @@ namespace NoMoreLeaks
         {
             transform.SetParent(null);
             DontDestroyOnLoad(gameObject);
+            NoMoreLeaksSettings.Load();
             new Harmony(HarmonyId).PatchAll();
             Debug.Log("[NoMoreLeaks] Harmony patches applied");
             InventoryCallbackSweeper.Sweep();
@@ -27,12 +28,7 @@ namespace NoMoreLeaks
 
         private void Update()
         {
-            if (HighLogic.LoadedSceneIsEditor)
-            {
-                int removed = InventoryCallbackSweeper.SweepEditorInventoryCallbacks();
-                if (removed > 0)
-                    Debug.Log("[NoMoreLeaks] Removed " + removed + " destroyed callback owners");
-            }
+            InventoryCallbackSweeper.SweepInventoryCallbacks();
 
             if (Time.realtimeSinceStartup < nextSweep) return;
 

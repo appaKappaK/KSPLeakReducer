@@ -18,6 +18,12 @@ namespace NoMoreLeaks.Patches
 
         private static void Cleanup(SpaceTracking instance)
         {
+            EventCleanup.RemoveOwner(GameEvents.OnMapViewFiltersModified, instance);
+            EventCleanup.RemoveOwner(GameEvents.onInputLocksModified, instance);
+            EventCleanup.RemoveOwner(GameEvents.onGUIRecoveryDialogSpawn, instance);
+            EventCleanup.RemoveOwner(GameEvents.onGUIRecoveryDialogDespawn, instance);
+            EventCleanup.RemoveOwner(GameEvents.onPlanetariumTargetChanged, instance);
+
             if (FlightGlobals.Vessels == null) return;
 
             for (int i = 0; i < FlightGlobals.Vessels.Count; i++)

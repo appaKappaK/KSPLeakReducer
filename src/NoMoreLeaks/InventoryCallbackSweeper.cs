@@ -8,7 +8,8 @@ namespace NoMoreLeaks
         {
             int removed = 0;
             removed += EventCleanup.RemoveDestroyedStockGameEventOwners();
-            removed += SweepEditorInventoryCallbacks();
+            removed += SweepInventoryCallbacks();
+            removed += SweepMapUiCallbacks();
             removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onVesselChange, typeof(Expansions.Serenity.ModuleRobotArmScanner));
             removed += EventCleanup.RemoveDestroyedOwnersByTypeName(GameEvents.onEditorShipModified, "PlanetarySurfaceStructures.ModuleKPBSCorridorNodes");
             removed += RemoveDestroyedSpaceTrackingCallbacks();
@@ -17,7 +18,7 @@ namespace NoMoreLeaks
                 Debug.Log("[NoMoreLeaks] Removed " + removed + " destroyed callback owners");
         }
 
-        internal static int SweepEditorInventoryCallbacks()
+        internal static int SweepInventoryCallbacks()
         {
             int removed = 0;
             removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onPartActionUICreate, typeof(ModuleInventoryPart));
@@ -27,6 +28,33 @@ namespace NoMoreLeaks
             removed += EventCleanup.RemoveDestroyedOwners(GameEvents.OnInventoryPartOnMouseChanged, typeof(ModuleInventoryPart));
             removed += EventCleanup.RemoveDestroyedOwners(GameEvents.OnEVACargoMode, typeof(UIPartActionInventorySlot));
             removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onEditorPartDeleted, typeof(UIPartActionInventorySlot));
+            return removed;
+        }
+
+        internal static int SweepEditorInventoryCallbacks()
+        {
+            return SweepInventoryCallbacks();
+        }
+
+        internal static int SweepMapUiCallbacks()
+        {
+            int removed = 0;
+            removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onGameStateLoad, typeof(OverlayGenerator));
+            removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onPlanetariumTargetChanged, typeof(OverlayGenerator));
+            removed += EventCleanup.RemoveDestroyedOwners(GameEvents.OnMapExited, typeof(KSP.UI.Screens.Flight.NavBallToggle));
+            removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onVesselChange, typeof(InternalNavBall));
+            removed += EventCleanup.RemoveDestroyedOwners(GameEvents.OnMapViewFiltersModified, typeof(KSP.UI.Screens.SpaceTracking));
+            removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onInputLocksModified, typeof(KSP.UI.Screens.SpaceTracking));
+            removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onGUIRecoveryDialogSpawn, typeof(KSP.UI.Screens.SpaceTracking));
+            removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onGUIRecoveryDialogDespawn, typeof(KSP.UI.Screens.SpaceTracking));
+            removed += EventCleanup.RemoveDestroyedOwners(GameEvents.onPlanetariumTargetChanged, typeof(KSP.UI.Screens.SpaceTracking));
+            removed += EventCleanup.RemoveDestroyedStaticDelegateOwners(typeof(MapView), "OnEnterMapView", typeof(OverlayGenerator));
+            removed += EventCleanup.RemoveDestroyedStaticDelegateOwners(typeof(MapView), "OnExitMapView", typeof(OverlayGenerator));
+
+            object timingManager = EventCleanup.GetStaticMember(typeof(TimingManager), "Instance");
+            object timing5 = EventCleanup.GetInstanceField(timingManager, "timing5");
+            removed += EventCleanup.RemoveDestroyedDelegateMemberOwners(timing5, "onLateUpdate");
+
             return removed;
         }
 
