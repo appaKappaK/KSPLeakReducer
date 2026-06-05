@@ -6,13 +6,11 @@ This mod does not replace KSPCommunityFixes. It tries to prevent selected callba
 
 ## Versioning
 
-Current project version: `1.5.0`
-
-The project now follows a simple `MAJOR.MINOR.PATCH` scheme tied to the changelog and `GameData/NoMoreLeaks/NoMoreLeaks.version`:
+Current project version: `1.6.0`
 
 - `#.#.1` patch releases are small fixes, doc changes, and low-risk cleanup adjustments
 - `#.1.#` minor releases are medium leak-coverage passes or workflow improvements
-- `1.#.#` major releases mark larger architectural shifts in how the mod performs cleanup
+- `1.#.#` major releases mark larger architectural shifts in how the mod works
 
 ## Install
 
@@ -123,11 +121,19 @@ The plugin uses Harmony patches on known stock teardown paths such as module `On
 
 It also runs a persistent sweeper from a `DontDestroyOnLoad` KSP addon. The broad stock sweep runs on scene load and on a timed interval, a stronger scene-unload sweep cleans generic stock `GameEvents` and delegate leftovers, and low-cost hot-path cleanup for `ModuleInventoryPart` and `VesselAutopilotUI` runs every frame so scene transitions like `EDITOR -> FLIGHT` have fewer chances to strand subscriptions.
 
+### Editor → Flight transition
+
+The `EDITOR -> FLIGHT` transition requires special handling because `ModuleInventoryPart` instances are still alive when the old scene begins tearing down, causing them to slip past the standard `RemoveDestroyedOwners` sweep. The mod hooks `EditorLogic.exitEditor` to sweep live instances proactively before any teardown begins. See the `1.6.0` changelog entry for the full root cause analysis.
+
+This conclusion came from the June 4-5 memory-leak exports under `/home/matt/Desktop/ksp-memleaks/`. In those sessions, NML debug summaries showed broad cleanup already working for cargo, map/UI, fairing, building-picker, and destroyed stock callback owners, while KSPCF still removed the same small `ModuleInventoryPart` editor callback family after scene transitions. That pattern pointed to a timing window rather than a missing callback name: the old editor inventory modules were still live when NML's destroyed-owner sweeps ran, then were destroyed later and caught by KSPCF.
+
+### Other lifecycle details
+
 Some fixes are direct lifecycle patches. For example, `ModuleRobotArmScanner` hides `ModuleDeployablePart.OnDestroy()`, so the base `onVesselChange` unsubscribe can be skipped unless patched directly.
 
 Tracking-station cleanup also sweeps vessel `OrbitRenderer.onVesselIconClicked` callbacks, because `SpaceTracking` registers per-vessel icon callbacks outside the central `GameEvents` list.
 
-Map-view cleanup also removes destroyed owners from static `MapView.OnEnterMapView` / `MapView.OnExitMapView` delegates. The scene-unload pass now also scans `TimingManager.Instance` and the stock timing buckets (`timing0` through `timing5`, `timingPre`, and `timingFI`) for destroyed stock delegate targets, following the same broad category of leftovers KSPCF catches on scene exit.
+Map-view cleanup removes destroyed owners from static `MapView.OnEnterMapView` / `MapView.OnExitMapView` delegates. The scene-unload pass scans `TimingManager.Instance` and the stock timing buckets (`timing0` through `timing5`, `timingPre`, and `timingFI`) for destroyed stock delegate targets.
 
 ## Validation
 
@@ -153,7 +159,14 @@ Scene transitions may also log:
 [NoMoreLeaks] Scene-unload removed N destroyed callback owners
 ```
 
-That indicates the stronger scene-exit sweep caught leftovers that survived until scene teardown.
+When the editor exit sweep fires successfully, verbose debug logging will show:
+
+```text
+[NoMoreLeaks:Debug] Proactive sweep via EditorLogic.exitEditor.Prefix
+[NoMoreLeaks:Debug] EditorExit proactive sweep cleaned N live ModuleInventoryPart(s)
+```
+
+If `ModuleInventoryPart` entries still appear in the KSPCF summary after this line is present, the subscriptions are being re-added after the sweep fires, which points to a different timing issue.
 
 ## Observed Leak History
 
@@ -180,6 +193,8 @@ Condensed timeline:
 | 2026-05-25 early | repo `memleaks/NEW LEAKS SUMMARY` long-flight run | `OverlayGenerator`, `MapView`, `NavBallToggle`, and `VesselAutopilotUI` became the dominant stock leaks during a long orbital session, while `ModuleInventoryPart` was low at `6/6` | Long-flight map/UI leak cluster identified |
 | 2026-05-25 midday | repo `memleaks/NEW LEAKS SUMMARY` after map/UI fixes | `OverlayGenerator`, `MapView`, `NavBallToggle`, `SpaceTracking`, `InternalNavBall`, `BuildingPickerItem`, and `EVAConstructionModeEditor` disappeared from the KSPCF summary; `ModuleInventoryPart` regressed to `69/69` with `19/19` on purchased/editor events | Map/UI work paid off, but inventory remained the dominant stock leak |
 | 2026-05-25 latest | repo `memleaks/NEW LEAKS SUMMARY` longer session after tighter inventory sweeps | `ModuleInventoryPart` improved again to `16/16` with `2/2` on purchased/editor events; `VesselAutopilotUI` rose to `20`; map/UI leak cluster stayed gone | Inventory timing improved again, leaving `VesselAutopilotUI` as the top remaining stock issue |
+| 2026-06-04 to 2026-06-05 | three validation sessions after 1.5.0 | `ModuleInventoryPart` at `12/12` in worst session; `ModuleCargoPart` removed proactively by NML (not appearing in KSPCF); `VesselAutopilotUI` at `3` in worst session; `CommNetScenario` ERR present each session (RealAntennas/CommNet conflict, out of scope) | 1.5.0 showing improvement over May baseline; editor→flight transition identified as remaining gap |
+| 2026-06-04 to 2026-06-05 | desktop exports in `/home/matt/Desktop/ksp-memleaks/` | first two exported KSPCF summaries were empty; later summaries repeatedly showed `ModuleInventoryPart` editor callbacks at `3/3/3/3`, with one longer run reaching `12` on `onPartActionUICreate` and `onModuleInventoryChanged` | The repeated small inventory-only residue, alongside active NML debug cleanup for other stock owners, supported the live-object editor-exit timing diagnosis |
 
 Control comparison:
 
@@ -188,20 +203,16 @@ Control comparison:
 
 ## Current State
 
-As of `2026-05-25`, the mod has materially improved several stock leak classes:
+As of `1.6.0`, the mod has materially improved several stock leak classes:
 
 - Long-flight `OverlayGenerator` / `MapView` / `NavBallToggle` leaks were reduced out of the KSPCF summary after dedicated map/UI cleanup was added.
 - `SpaceTracking`, `InternalNavBall`, `BuildingPickerItem`, and `EVAConstructionModeEditor` are now much less prominent than in the earlier worst runs.
-- The plugin is actively removing the targeted callbacks, as confirmed by `NoMoreLeaks-debug-summary.txt`.
-- `ModuleInventoryPart` has come down substantially from its `69/69/19/19` regression to `16/16/2/2` in the latest longer-session export.
-- The current `1.5.0` code pass adds a KSPCF-inspired scene-unload sweep, broader `TimingManager` cleanup, and a few additional stock handlers, but that specific pass has not yet been validated with a fresh leak export.
+- `ModuleCargoPart | OnEVAConstructionMode` is being caught proactively by NML and no longer appearing in KSPCF summaries.
+- `ModuleInventoryPart` has come down substantially from its `69/69/19/19` regression; the `EDITOR -> FLIGHT` proactive sweep added in `1.6.0` targets the remaining window where still-alive instances were slipping past `RemoveDestroyedOwners`.
 
-The main unresolved stock issues are now `VesselAutopilotUI` first and `ModuleInventoryPart` second:
+The main unresolved stock issue is `ModuleInventoryPart` during the editor exit window, which `1.6.0` directly addresses. `VesselAutopilotUI` counts are low but still present; those are more sensitive to UI lifecycle timing during long sessions and remain under observation.
 
-- Latest observed KSPCF summary: `20` `VesselAutopilotUI | OnGameSettingsApplied`, `16` `ModuleInventoryPart | onPartActionUICreate`, `16` `ModuleInventoryPart | onModuleInventoryChanged`, `2` `OnPartPurchased`, `2` `onEditorPartEvent`.
-- The latest code passes broaden `VesselAutopilotUI` cleanup to its `OnGameSettingsApplied`, `onVesselChange`, and `onKerbalLevelUp` subscriptions, sweep those callbacks every frame, and add a stronger scene-unload cleanup path modeled after the installed KSPCF leak fixer.
-- Latest debug summaries show `NoMoreLeaks` is removing many `ModuleInventoryPart` callbacks itself, but KSPCF is still catching some destroyed owners later.
-- The current working theory is that inventory subscriptions are still slipping through during editor teardown and `EDITOR -> FLIGHT` transitions, while autopilot leaks are more sensitive to exact UI lifecycle timing during long sessions.
+`CommNetScenario: Instance already exists!` appears once per scene reload and is a known RealAntennas/CommNet conflict on scene transition. It is outside this mod's scope.
 
 ## Changelog
 
@@ -209,6 +220,49 @@ Project-level release notes now live in [CHANGELOG.md](CHANGELOG.md). The README
 
 ## Build Notes
 
-The project targets old .NET Framework for KSP compatibility. On Linux, the DLL can be built with Mono `mcs` against the local KSP assemblies.
+The project targets old .NET Framework for KSP compatibility. On Fedora/Linux, install Mono development tools and build the release DLL with `xbuild`:
+
+```bash
+sudo dnf install mono-devel
+xbuild NoMoreLeaks.sln /p:Configuration=Release
+```
+
+The generated plugin lands in:
+
+```text
+GameData/NoMoreLeaks/Plugins/NoMoreLeaks.dll
+```
+
+The local Fedora Mono package supports C# `7.2` and the .NET Framework `4.7.1` API profile, so the project is pinned to those versions for reproducible local builds.
+
+### GitHub release workflow
+
+The `.github/workflows/release.yml` workflow builds the plugin, packages `GameData/NoMoreLeaks`, and creates or updates the GitHub release matching `GameData/NoMoreLeaks/NoMoreLeaks.version`. Release notes are pulled from the matching `CHANGELOG.md` section, so version `1.6.0` publishes the `1.6.0` changelog notes.
+
+GitHub Actions does not include KSP's proprietary assemblies, so the workflow needs a repository secret named `KSP_REFERENCES_URL` that points to a private zip with this layout:
+
+```text
+GameData/000_Harmony/0Harmony.dll
+KSP_x64_Data/Managed/Assembly-CSharp.dll
+KSP_x64_Data/Managed/UnityEngine.dll
+KSP_x64_Data/Managed/UnityEngine.CoreModule.dll
+KSP_x64_Data/Managed/UnityEngine.UI.dll
+KSP_x64_Data/Managed/UnityEngine.UIModule.dll
+```
+
+If the URL requires bearer authentication, also set `KSP_REFERENCES_TOKEN`.
+
+One local way to prepare the reference zip is:
+
+```bash
+cd "/stm/SteamLibrary/steamapps/common/Kerbal Space Program"
+zip -r ~/ksp-references.zip \
+  GameData/000_Harmony/0Harmony.dll \
+  KSP_x64_Data/Managed/Assembly-CSharp.dll \
+  KSP_x64_Data/Managed/UnityEngine.dll \
+  KSP_x64_Data/Managed/UnityEngine.CoreModule.dll \
+  KSP_x64_Data/Managed/UnityEngine.UI.dll \
+  KSP_x64_Data/Managed/UnityEngine.UIModule.dll
+```
 
 Generated binaries under `GameData/NoMoreLeaks/Plugins/` and build intermediates under `bin/` / `obj/` are ignored by git.

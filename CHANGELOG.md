@@ -14,6 +14,24 @@ Older entries below were reconstructed from commit history and testing notes so 
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-06-05
+
+### Added
+
+- Proactive `EDITOR -> FLIGHT` inventory sweep via a Harmony prefix on `EditorLogic.exitEditor`.
+- `EditorToFlightSweepPatch.cs` containing `EditorExitInventorySweepPatch` and the shared `EditorExitSweep.SweepLiveInventoryModules` helper.
+
+### Fixed
+
+- `ModuleInventoryPart` callbacks leaking through the editor exit window. The root cause was that `RemoveDestroyedOwners` only removes entries whose originator is a destroyed Unity object. During `EDITOR -> FLIGHT`, the old editor `ModuleInventoryPart` instances are still alive when the new flight scene begins loading, so they passed the liveness check and were skipped. By the time Unity destroyed them, the scene-unload sweep had already run. `SweepLiveInventoryModules` uses `FindObjectsOfType<ModuleInventoryPart>()` to find all live instances and calls `Cleanup` on each directly, without waiting for destruction.
+- Documented the evidence trail from the June 4-5 desktop memory-leak exports: NML was already cleaning broad stock leak classes while KSPCF still caught a small repeated `ModuleInventoryPart` editor callback set after transitions, pointing to an editor-exit timing window.
+
+### Changed
+
+- `README.md` updated to 1.6.0, documents the editor exit sweep and its expected log output, and adds the June 2026 validation sessions to the leak history table.
+- The Linux build profile now targets .NET Framework `4.7.1` and C# `7.2`, matching Fedora Mono's available `xbuild`/`mcs` toolchain.
+- KSP, Unity, and Harmony references are marked non-copy-local so generated packages do not include dependency DLLs that KSP already provides.
+
 ## [1.5.0] - 2026-05-25
 
 ### Added

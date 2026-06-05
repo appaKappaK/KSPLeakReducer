@@ -8,10 +8,10 @@
     <OutputType>Library</OutputType>
     <RootNamespace>NoMoreLeaks</RootNamespace>
     <AssemblyName>NoMoreLeaks</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
-    <LangVersion>7.3</LangVersion>
+    <LangVersion>7.2</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -50,6 +50,7 @@
     <Compile Include="Patches\NavBallToggleLeakPatch.cs" />
     <Compile Include="Patches\EVAConstructionModeEditorLeakPatch.cs" />
     <Compile Include="Patches\EditorInventorySweepPatch.cs" />
+    <Compile Include="Patches\EditorToFlightSweepPatch.cs" />
     <Compile Include="Patches\InternalNavBallLeakPatch.cs" />
     <Compile Include="Patches\KerbalEVALeakPatch.cs" />
     <Compile Include="Patches\OverlayGeneratorLeakPatch.cs" />
@@ -62,23 +63,29 @@
   <ItemGroup>
     <Reference Include="0Harmony">
       <HintPath>/stm/SteamLibrary/steamapps/common/Kerbal Space Program/GameData/000_Harmony/0Harmony.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>/stm/SteamLibrary/steamapps/common/Kerbal Space Program/KSP_x64_Data/Managed/Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="UnityEngine">
       <HintPath>/stm/SteamLibrary/steamapps/common/Kerbal Space Program/KSP_x64_Data/Managed/UnityEngine.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>/stm/SteamLibrary/steamapps/common/Kerbal Space Program/KSP_x64_Data/Managed/UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>/stm/SteamLibrary/steamapps/common/Kerbal Space Program/KSP_x64_Data/Managed/UnityEngine.UI.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.UIModule">
       <HintPath>/stm/SteamLibrary/steamapps/common/Kerbal Space Program/KSP_x64_Data/Managed/UnityEngine.UIModule.dll</HintPath>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

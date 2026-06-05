@@ -1,0 +1,129 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - CHANGELOG.md
+      - GameData/NoMoreLeaks/NoMoreLeaks.version
+      - src/NoMoreLeaks/**
+      - .github/workflows/release.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    env:
+      KSP_ROOT: /stm/SteamLibrary/steamapps/common/Kerbal Space Program
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Mono build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mono-devel unzip zip jq
+
+      - name: Read version
+        id: version
+        run: |
+          version_json="GameData/NoMoreLeaks/NoMoreLeaks.version"
+          major="$(jq -r '.VERSION.MAJOR' "$version_json")"
+          minor="$(jq -r '.VERSION.MINOR' "$version_json")"
+          patch="$(jq -r '.VERSION.PATCH' "$version_json")"
+          version="${major}.${minor}.${patch}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Extract changelog notes
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          awk -v version="$version" '
+            index($0, "## [" version "]") == 1 { capture=1; next }
+            capture && index($0, "## [") == 1 { exit }
+            capture { print }
+          ' CHANGELOG.md | sed '/^[[:space:]]*$/N;/^\n$/D' > release-notes.md
+
+          if [ ! -s release-notes.md ]; then
+            echo "No changelog section found for $version" > release-notes.md
+          fi
+
+      - name: Download KSP reference assemblies
+        env:
+          KSP_REFERENCES_URL: ${{ secrets.KSP_REFERENCES_URL }}
+          KSP_REFERENCES_TOKEN: ${{ secrets.KSP_REFERENCES_TOKEN }}
+        run: |
+          if [ -z "$KSP_REFERENCES_URL" ]; then
+            echo "KSP_REFERENCES_URL secret is required."
+            echo "It must point to a zip containing GameData/000_Harmony/0Harmony.dll and KSP_x64_Data/Managed/*.dll references."
+            exit 1
+          fi
+
+          mkdir -p refs
+          if [ -n "$KSP_REFERENCES_TOKEN" ]; then
+            curl -fL -H "Authorization: Bearer $KSP_REFERENCES_TOKEN" "$KSP_REFERENCES_URL" -o refs/ksp-references.zip
+          else
+            curl -fL "$KSP_REFERENCES_URL" -o refs/ksp-references.zip
+          fi
+
+          sudo mkdir -p "$KSP_ROOT"
+          sudo unzip -q refs/ksp-references.zip -d "$KSP_ROOT"
+
+          test -f "$KSP_ROOT/GameData/000_Harmony/0Harmony.dll"
+          test -f "$KSP_ROOT/KSP_x64_Data/Managed/Assembly-CSharp.dll"
+          test -f "$KSP_ROOT/KSP_x64_Data/Managed/UnityEngine.dll"
+          test -f "$KSP_ROOT/KSP_x64_Data/Managed/UnityEngine.CoreModule.dll"
+          test -f "$KSP_ROOT/KSP_x64_Data/Managed/UnityEngine.UI.dll"
+          test -f "$KSP_ROOT/KSP_x64_Data/Managed/UnityEngine.UIModule.dll"
+
+      - name: Build plugin
+        run: xbuild NoMoreLeaks.sln /p:Configuration=Release
+
+      - name: Package GameData
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          find GameData/NoMoreLeaks/Plugins -maxdepth 1 -type f \
+            ! -name 'NoMoreLeaks.dll' \
+            ! -name 'NoMoreLeaks.dll.mdb' \
+            -delete
+          test -f GameData/NoMoreLeaks/Plugins/NoMoreLeaks.dll
+          zip_name="NoMoreLeaks-v${version}.zip"
+          zip -r "$zip_name" GameData/NoMoreLeaks
+          echo "ZIP_NAME=$zip_name" >> "$GITHUB_ENV"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NoMoreLeaks-v${{ steps.version.outputs.version }}
+          path: ${{ env.ZIP_NAME }}
+
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.version.outputs.tag }}"
+          version="${{ steps.version.outputs.version }}"
+          title="NoMoreLeaks $version"
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" \
+              --title "$title" \
+              --notes-file release-notes.md \
+              --latest
+            gh release upload "$tag" "$ZIP_NAME" --clobber
+          else
+            gh release create "$tag" "$ZIP_NAME" \
+              --title "$title" \
+              --notes-file release-notes.md \
+              --latest
+          fi
