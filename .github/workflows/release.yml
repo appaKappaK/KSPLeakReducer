@@ -24,8 +24,7 @@ jobs:
 
     env:
       KSP_ROOT: /stm/SteamLibrary/steamapps/common/Kerbal Space Program
-      KSP_REFERENCES_TAG: ksp-references
-      KSP_REFERENCES_ASSET: ksp-references.zip
+      KSP_REFERENCES_REPO: appaKappaK/NoMoreLeaks-build-references
 
     steps:
       - name: Check out repository
@@ -62,22 +61,18 @@ jobs:
 
       - name: Download KSP reference assemblies
         env:
-          GH_TOKEN: ${{ github.token }}
-          KSP_REFERENCES_URL: ${{ secrets.KSP_REFERENCES_URL }}
-          KSP_REFERENCES_TOKEN: ${{ secrets.KSP_REFERENCES_TOKEN }}
+          KSP_REFERENCES_SSH_KEY: ${{ secrets.KSP_REFERENCES_SSH_KEY }}
         run: |
           mkdir -p refs
-          if [ -n "$KSP_REFERENCES_URL" ]; then
-            if [ -n "$KSP_REFERENCES_TOKEN" ]; then
-              curl -fL -H "Authorization: Bearer $KSP_REFERENCES_TOKEN" "$KSP_REFERENCES_URL" -o refs/ksp-references.zip
-            else
-              curl -fL "$KSP_REFERENCES_URL" -o refs/ksp-references.zip
-            fi
-          else
-            gh release download "$KSP_REFERENCES_TAG" \
-              --pattern "$KSP_REFERENCES_ASSET" \
-              --output refs/ksp-references.zip
-          fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$KSP_REFERENCES_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+          git clone --depth 1 \
+            "git@github.com:${KSP_REFERENCES_REPO}.git" \
+            refs/private
+          cp refs/private/ksp-references.zip refs/ksp-references.zip
 
           sudo mkdir -p "$KSP_ROOT"
           sudo unzip -q refs/ksp-references.zip -d "$KSP_ROOT"

@@ -159,5 +159,7 @@ The generated plugin lands in:
 GameData/NoMoreLeaks/Plugins/NoMoreLeaks.dll
 ```
 
-The GitHub release workflow requires private KSP, Unity, and Harmony reference
-assemblies. Generated binaries and build intermediates remain ignored by git.
+The GitHub release workflow retrieves private KSP, Unity, and Harmony reference
+assemblies from the private `NoMoreLeaks-build-references` repository using the
+read-only `KSP_REFERENCES_SSH_KEY` deploy key secret. Generated binaries and
+build intermediates remain ignored by git.
