@@ -23,3 +23,7 @@ Thumbs.db
 KSPCF-memory-leaks-*.txt
 NoMoreLeaks-debug-*.txt
 instructions.txt
+/exp-memleaks.sh
+/export-ksp-memleaks.sh
+/summaries/*
+!/summaries/README.md
