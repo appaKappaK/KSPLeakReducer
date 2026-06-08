@@ -69,9 +69,7 @@ continues to run when verbose logging is disabled.
 NoMoreLeaks patches stock KSP lifecycle and callback behavior with Harmony. It
 does not replace KSPCommunityFixes and is designed to be used with it.
 
-`RealAntennas` callback cleanup is intentionally outside this mod's scope.
-Other third-party callbacks reported by KSPCommunityFixes may also remain
-untouched.
+Third-party callback cleanup is currently outside this mod's scope.
 
 ## Troubleshooting
 
