@@ -93,3 +93,7 @@ Include `KSP.log` when reporting a problem.
 - See [CHANGELOG.md](CHANGELOG.md) for release notes.
 - See [summaries/README.md](summaries/README.md) for development, validation,
   and leak-history notes.
+  
+## License
+
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
