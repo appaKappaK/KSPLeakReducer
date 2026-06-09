@@ -93,4 +93,3 @@ Include `KSP.log` when reporting a problem.
 - See [CHANGELOG.md](CHANGELOG.md) for release notes.
 - See [summaries/README.md](summaries/README.md) for development, validation,
   and leak-history notes.
-- NoMoreLeaks is licensed under the [MIT License](LICENSE).
