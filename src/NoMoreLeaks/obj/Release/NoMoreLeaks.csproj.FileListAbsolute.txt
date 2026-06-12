@@ -1,6 +1,0 @@
-/home/matth/Desktop/KSPmods-Self-Fix/mods/NoMoreLeaks/src/NoMoreLeaks/obj/Release/NoMoreLeaks.csproj.AssemblyReference.cache
-/home/matth/Desktop/KSPmods-Self-Fix/mods/NoMoreLeaks/src/NoMoreLeaks/obj/Release/NoMoreLeaks.csproj.CoreCompileInputs.cache
-/home/matth/Desktop/KSPmods-Self-Fix/mods/NoMoreLeaks/GameData/NoMoreLeaks/Plugins/NoMoreLeaks.dll
-/home/matth/Desktop/KSPmods-Self-Fix/mods/NoMoreLeaks/GameData/NoMoreLeaks/Plugins/NoMoreLeaks.pdb
-/home/matth/Desktop/KSPmods-Self-Fix/mods/NoMoreLeaks/src/NoMoreLeaks/obj/Release/NoMoreLeaks.dll
-/home/matth/Desktop/KSPmods-Self-Fix/mods/NoMoreLeaks/src/NoMoreLeaks/obj/Release/NoMoreLeaks.pdb

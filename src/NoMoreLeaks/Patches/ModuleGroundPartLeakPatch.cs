@@ -9,17 +9,17 @@ namespace NoMoreLeaks.Patches
         [HarmonyPatch("OnDestroy")]
         private static void OnDestroyPrefix(ModuleGroundPart __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         [HarmonyPostfix]
         [HarmonyPatch("OnDestroy")]
         private static void OnDestroyPostfix(ModuleGroundPart __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        internal static void Cleanup(ModuleGroundPart instance)
+        internal static void CleanupCallbacks(ModuleGroundPart instance)
         {
             if (instance == null) return;
 
@@ -73,12 +73,12 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(ModuleGroundSciencePart __instance)
         {
-            ModuleGroundPartLeakPatch.Cleanup(__instance);
+            ModuleGroundPartLeakPatch.CleanupCallbacks(__instance);
         }
 
         private static void Postfix(ModuleGroundSciencePart __instance)
         {
-            ModuleGroundPartLeakPatch.Cleanup(__instance);
+            ModuleGroundPartLeakPatch.CleanupCallbacks(__instance);
         }
     }
 
@@ -87,12 +87,12 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(ModuleGroundExperiment __instance)
         {
-            ModuleGroundPartLeakPatch.Cleanup(__instance);
+            ModuleGroundPartLeakPatch.CleanupCallbacks(__instance);
         }
 
         private static void Postfix(ModuleGroundExperiment __instance)
         {
-            ModuleGroundPartLeakPatch.Cleanup(__instance);
+            ModuleGroundPartLeakPatch.CleanupCallbacks(__instance);
         }
     }
 
@@ -101,12 +101,12 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(ModuleGroundExpControl __instance)
         {
-            ModuleGroundPartLeakPatch.Cleanup(__instance);
+            ModuleGroundPartLeakPatch.CleanupCallbacks(__instance);
         }
 
         private static void Postfix(ModuleGroundExpControl __instance)
         {
-            ModuleGroundPartLeakPatch.Cleanup(__instance);
+            ModuleGroundPartLeakPatch.CleanupCallbacks(__instance);
         }
     }
 }

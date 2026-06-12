@@ -30,7 +30,7 @@ namespace NoMoreLeaks.Patches
             for (int i = 0; i < modules.Length; i++)
             {
                 if (modules[i] == null) continue;
-                ModuleInventoryPartLeakPatch.Cleanup(modules[i]);
+                ModuleInventoryPartLeakPatch.CleanupCallbacks(modules[i]);
                 cleaned++;
             }
 

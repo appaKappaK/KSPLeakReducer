@@ -8,15 +8,15 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(BuildingPickerItem __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         private static void Postfix(BuildingPickerItem __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        private static void Cleanup(BuildingPickerItem instance)
+        private static void CleanupCallbacks(BuildingPickerItem instance)
         {
             object building = EventCleanup.GetInstanceField(instance, "building");
             EventCleanup.RemoveInstanceEventField(building, "OnClick", instance, "OnBuildingClick");

@@ -8,15 +8,15 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(CommNetVessel __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         private static void Postfix(CommNetVessel __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        private static void Cleanup(CommNetVessel instance)
+        private static void CleanupCallbacks(CommNetVessel instance)
         {
             EventCleanup.RemoveOwner(GameEvents.CommNet.OnNetworkInitialized, instance);
             EventCleanup.RemoveGameEvent(GameEvents.CommNet.OnNetworkInitialized, instance, "OnNetworkInitialized");

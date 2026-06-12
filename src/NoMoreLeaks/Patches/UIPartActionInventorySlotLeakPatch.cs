@@ -7,15 +7,15 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(UIPartActionInventorySlot __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         private static void Postfix(UIPartActionInventorySlot __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        private static void Cleanup(UIPartActionInventorySlot instance)
+        private static void CleanupCallbacks(UIPartActionInventorySlot instance)
         {
             EventCleanup.RemoveOwner(GameEvents.OnEVACargoMode, instance);
             EventCleanup.RemoveOwner(GameEvents.onEditorPartDeleted, instance);

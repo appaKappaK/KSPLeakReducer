@@ -7,15 +7,15 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(ModuleDeployableSolarPanel __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         private static void Postfix(ModuleDeployableSolarPanel __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        private static void Cleanup(ModuleDeployableSolarPanel instance)
+        private static void CleanupCallbacks(ModuleDeployableSolarPanel instance)
         {
             EventCleanup.RemoveGameEvent(GameEvents.onVesselChange, instance, "onVesselFocusChange");
         }

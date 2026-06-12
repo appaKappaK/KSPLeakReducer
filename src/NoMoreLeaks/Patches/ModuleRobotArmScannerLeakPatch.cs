@@ -8,15 +8,15 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(ModuleRobotArmScanner __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         private static void Postfix(ModuleRobotArmScanner __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        private static void Cleanup(ModuleRobotArmScanner instance)
+        private static void CleanupCallbacks(ModuleRobotArmScanner instance)
         {
             EventCleanup.RemoveOwner(GameEvents.onVesselChange, instance);
         }

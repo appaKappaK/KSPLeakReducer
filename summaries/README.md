@@ -6,7 +6,7 @@ git; this README is the only tracked file in the directory.
 
 ## Versioning
 
-Current project version: `1.6.0`
+Current project version: `1.7.0`
 
 - `#.#.1` patch releases are small fixes, documentation changes, and low-risk
   cleanup adjustments.
@@ -19,7 +19,8 @@ Current project version: `1.6.0`
 
 Stock KSP and DLC callback owners currently covered include:
 
-- `ModuleCargoPart`, `ModuleInventoryPart`, and `UIPartActionInventorySlot`
+- `ModuleCargoPart`, `ModuleInventoryPart`, `UIPartActionInventorySlot`, and
+  `UIPartActionControllerInventory`
 - `ModuleDeployableSolarPanel`, `ModuleControlSurface`, and
   `ModuleRobotArmScanner`
 - Ground-part, ground-science, and `KerbalEVA` callback families
@@ -31,15 +32,19 @@ Stock KSP and DLC callback owners currently covered include:
 
 Optional third-party cleanup currently covered:
 
-- `PlanetarySurfaceStructures.ModuleKPBSCorridorNodes | onEditorShipModified`
+- Kerbal Planetary Base Systems:
+  `PlanetarySurfaceStructures.ModuleKPBSCorridorNodes | onEditorShipModified`
 
-`RealAntennas` callbacks are intentionally not patched here.
+This targets the `PlanetarySurfaceStructures` assembly and is unrelated to the
+separate `PlanetsideExplorationTechnologies` assembly. `RealAntennas` callbacks
+are intentionally not patched here.
 
 ## Implementation Notes
 
 The plugin uses Harmony patches on known stock teardown paths such as module
 `OnDestroy()`, `Vessel.Unload()`, `Part.OnDestroy`, `Part.OnDelete`,
-`Part.RemoveModule`, and `Part.RemoveModules`.
+`Part.RemoveModule`, `Part.RemoveModules`, and
+`ModuleInventoryPart.DeletePartObject`.
 
 It also runs a persistent sweeper from a `DontDestroyOnLoad` KSP addon. The
 broad stock sweep runs on scene load and on a timed interval. A stronger
@@ -59,8 +64,22 @@ modules before teardown begins. The repeated small inventory-only residue in
 June 2026 test runs, while broader stock cleanup was already working, identified
 this timing window.
 
+### Inventory Part Creation And Deletion
+
+Inventory-created parts can strand callbacks when they are deleted before the
+normal part lifecycle finishes. NoMoreLeaks cleans the selected part and its
+child-part hierarchy before `ModuleInventoryPart.DeletePartObject` destroys it.
+It also sweeps inventory callbacks after both
+`UIPartActionControllerInventory.CreatePartFromInventory` overloads.
+
 ### Other Lifecycle Details
 
+- Patch helper methods avoid Harmony's reserved `Cleanup` name. Harmony treats
+  that name as a patch-cleanup method and can invoke it during `PatchAll()`
+  instead of during normal gameplay teardown.
+- `Part.OnDelete` cleanup traverses child-part hierarchies so callback-owning
+  modules below the root part are also cleaned. `Part.OnDestroy` cleans only the
+  part being destroyed so surviving child parts retain their callbacks.
 - `ModuleRobotArmScanner` hides `ModuleDeployablePart.OnDestroy()`, so its base
   `onVesselChange` unsubscribe can be skipped.
 - Tracking-station cleanup sweeps vessel
@@ -87,10 +106,25 @@ Important generated files include:
 - `NoMoreLeaks-debug-summary-*.txt`
 - `NoMoreLeaks-debug-markers-*.txt`
 
+Treat a run as a complete NoMoreLeaks validation only when the exported
+`Harmony patches applied` marker count is non-zero, or the raw log contains
+`[NoMoreLeaks] Harmony patches applied`. The exporter always prints the marker
+label, even when its count is zero. The four archived runs with NoMoreLeaks
+installed contain proactive-cleanup output but report a zero success-marker
+count. They therefore represent partial patch installations from before the
+reserved Harmony `Cleanup` method-name collision was fixed, not full `1.7.0`
+validation runs.
+
+KSPCommunityFixes' per-scene `cleaned N` total includes unhandled observations
+and can repeatedly count persistent third-party callbacks. Use its callback-owner
+summary, NoMoreLeaks markers, and allocation trend together instead of treating
+that total as the number of callbacks actually removed.
+
 Covered callback owners should disappear from the KSPCommunityFixes summary or
 drop substantially. Useful runtime markers include:
 
 ```text
+[NoMoreLeaks] Harmony patches applied
 [NoMoreLeaks] Removed N destroyed callback owners
 [NoMoreLeaks] Scene-unload removed N destroyed callback owners
 [NoMoreLeaks:Debug] Proactive sweep via EditorLogic.exitEditor.Prefix
@@ -123,13 +157,91 @@ Condensed timeline:
 | 2026-05-25 | Long-session map/UI leaks and recurring inventory callbacks | Dedicated map/UI cleanup worked; inventory remained the main target |
 | 2026-06-04 to 2026-06-05 | Repeated small inventory callback sets after scene transitions | Editor-to-flight live-object timing window identified |
 | 2026-06-07 to 2026-06-08 | Recent stock residue generally stayed in single digits | Inventory cleanup materially improved; `VesselAutopilotUI` remained the most consistent stock residue |
+| 2026-06-10 | NoMoreLeaks-off control run grew from 9.228 GiB to 17.489 GiB across 43 scene exits; KSPCF cleaned 26,617 callbacks | Confirmed the underlying stock leaks remain severe without proactive cleanup; added inventory part-creation/deletion coverage and fixed Harmony reserved-name collisions |
 
 The NoMoreLeaks-off control run confirmed that the underlying stock callback
-leaks still occur without the mod.
+leaks still occur without the mod. The dominant stock residue was
+`ModuleCargoPart.OnEVAConstructionMode`, with 5,315 callbacks cleaned by
+KSPCommunityFixes during the control session.
+
+### Archived Export Review
+
+All locally generated June 2026 exports have been reviewed. Allocation delta is
+measured from the first to final scene-exit sample in each export.
+
+| Export | NoMoreLeaks state | Scene exits | Final allocation | Allocation delta | Callbacks in KSPCF handled summary |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `2026-06-08_03-03-56` | Partial install; zero success-marker count | 8 | 11.350 GiB | +1.618 GiB | 28 |
+| `2026-06-09_05-57-49` | Partial install; zero success-marker count | 27 | 16.641 GiB | +6.880 GiB | 398 |
+| `2026-06-09_20-15-48` | Partial install; zero success-marker count | 14 | 11.925 GiB | +1.766 GiB | 55 |
+| `2026-06-10_02-54-33` | Partial install; zero success-marker count | 13 | 15.301 GiB | +4.971 GiB | 22 |
+| `2026-06-10_06-07-40` | Not installed; control run | 43 | 17.489 GiB | +8.261 GiB | 5,857 |
+| `2026-06-11_04-39-43` | Full patch install; startup sweep exception found | 15 | 11.375 GiB | +2.925 GiB | 1 |
+| `2026-06-11_06-18-43` | Full patch install; vessel-list guard verified | 23 | 12.823 GiB | +2.724 GiB | 1 |
+| `2026-06-11_22-40-51` | Full patch install; event-registry race found | 52 | 15.918 GiB | +5.945 GiB | 1 |
+| `2026-06-12_02-38-13` | Full patch install; inventory deletion verified | 35 | 18.495 GiB | +7.152 GiB | 1 |
+
+The older partial-install exports show that proactive cleanup was running and
+substantially reduced covered stock residue, but they cannot establish the
+behavior of the complete `1.7.0` patch set. Memory also continued to grow in
+some sessions, so callback cleanup is not the only source of KSP process-memory
+growth.
+
+The June 11 run is the first export with a non-zero Harmony success marker. It
+exercised the editor-exit sweep and the then-recursive child-part lifecycle
+cleanup.
+KSPCommunityFixes' handled summary contained only one
+`RealAntennas.RACommNetVessel.onPlanetariumTargetChange` callback and no covered
+stock callback owners. The run also exposed startup and scene-unload sweep
+exceptions from accessing `FlightGlobals.Vessels` before flight globals
+existed; the post-run singleton guard fixes those paths. Inventory
+`DeletePartObject` cleanup was not exercised.
+
+The following June 11 runs verified that the `FlightGlobals` singleton guard
+prevents the earlier vessel-list exceptions. The longer heavy-rover build and
+test session ran for more than seven hours across 52 scene exits and again left
+only the intentionally unpatched RealAntennas callback in KSPCommunityFixes'
+handled summary. It exposed one broad-sweep exception when KSP changed the
+GameEvents registry during enumeration; the post-run registry snapshot and
+deferred-retry behavior fixes that race. Inventory `DeletePartObject` cleanup
+still was not exercised.
+
+The June 12 mixed rover, base, station, and deployed-science session exercised
+`ModuleInventoryPart.DeletePartObject` 29 times across control stations,
+experiments, antennas, power parts, and other inventory-created objects. It
+also exercised ground-science termination and recovery cleanup. No covered
+stock callback owners remained in KSPCommunityFixes' handled summary, and no
+NoMoreLeaks exceptions occurred across 35 scene exits. The session contained
+no deployed-science missing-vessel warnings. All 29 inventory deletion objects
+were standalone parts, so child-hierarchy cleanup through `DeletePartObject`
+itself remains untested. The same run logged 296 child-bearing
+`Part.OnDestroy` cleanups and showed that child parts receive their own
+lifecycle cleanup, supporting the final decision to limit `Part.OnDestroy` to
+the part actually being destroyed.
+
+### Known Unhandled Third-Party Residue
+
+These callback owners recur in the unhandled summaries and remain outside the
+current NoMoreLeaks stock-cleanup scope:
+
+- `PlanetsideExplorationTechnologies.OnGameSettingsApplied`
+- `NearFutureElectrical.ReactorUI.onGUIApplicationLauncherDestroyed`
+- `NearFutureElectrical.DischargeCapacitorUI.onGUIApplicationLauncherDestroyed`
+- `Scale.PartDB.19x.GameEventEditorVariantAppliedListener.onEditorVariantApplied`
+- `PartInfo.PartInfoWindow.onEditorPartEvent`
+
+The Planetside entry above is not the compatibility cleanup listed under Current
+Patch Targets. NoMoreLeaks cleans the separate Kerbal Planetary Base Systems
+`ModuleKPBSCorridorNodes.onEditorShipModified` callback, but does not currently
+clean `PlanetsideExplorationTechnologies.OnGameSettingsApplied`.
+
+Earlier exports also contain repeated deployed-science missing-vessel warnings.
+Those disappeared after the affected deployed experiments were removed and are
+save-state noise rather than a NoMoreLeaks callback target.
 
 ## Current State
 
-As of `1.6.0`:
+As of `1.7.0`:
 
 - Long-flight `OverlayGenerator`, `MapView`, and `NavBallToggle` leaks are much
   less prominent.
@@ -137,12 +249,24 @@ As of `1.6.0`:
   `EVAConstructionModeEditor` have been substantially reduced.
 - `ModuleCargoPart | OnEVAConstructionMode` is usually caught proactively.
 - `ModuleInventoryPart` has fallen from large repeated callback sets to small
-  residual counts in recent validation sessions.
-- `VesselAutopilotUI.OnGameSettingsApplied` is the most consistent remaining
-  stock callback residue.
+  residual counts in recent validation sessions. Version `1.7.0` adds cleanup
+  around inventory-created part creation and deletion paths.
+- Explicit subtree-deletion cleanup now covers child-part hierarchies.
+- Harmony patch helpers no longer use the reserved `Cleanup` method name that
+  could abort patch installation during startup.
+- The June 11 full-install run left no covered stock callbacks in KSPCF's
+  handled summary.
+- The two later June 11 runs verified the `FlightGlobals` singleton guard
+  prevents the vessel-list exception.
+- The June 12 follow-up run completed 35 scene exits without another GameEvents
+  registry-enumeration exception.
+- Inventory placement cancellation and deployed-part teardown now validate the
+  new `DeletePartObject` cleanup path.
 
-`CommNetScenario: Instance already exists!` is a RealAntennas/CommNet scene
-transition conflict and remains outside this mod's scope.
+`CommNetScenario: Instance already exists!` can appear immediately after
+RealAntennas rebuilds its CommNet homes. RealAntennas logs that this specific
+stock error should be ignored. It is not evidence of a leaked callback and does
+not require NoMoreLeaks cleanup.
 
 ## Build Notes
 

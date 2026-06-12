@@ -7,15 +7,15 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(KerbalEVA __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         private static void Postfix(KerbalEVA __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        private static void Cleanup(KerbalEVA instance)
+        private static void CleanupCallbacks(KerbalEVA instance)
         {
             EventCleanup.RemoveGameEvent(GameEvents.OnROCExperimentStored, instance, "OnROCExperimentFinished");
             EventCleanup.RemoveGameEvent(GameEvents.OnROCExperimentReset, instance, "OnROCExperimentReset");

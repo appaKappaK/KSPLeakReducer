@@ -67,12 +67,13 @@ namespace NoMoreLeaks
 
         private static int RemoveDestroyedSpaceTrackingCallbacks()
         {
-            if (FlightGlobals.Vessels == null) return 0;
+            var vessels = FlightGlobals.fetch == null ? null : FlightGlobals.fetch.vessels;
+            if (vessels == null) return 0;
 
             int removed = 0;
-            for (int i = 0; i < FlightGlobals.Vessels.Count; i++)
+            for (int i = 0; i < vessels.Count; i++)
             {
-                Vessel vessel = FlightGlobals.Vessels[i];
+                Vessel vessel = vessels[i];
                 if (vessel == null || vessel.orbitRenderer == null) continue;
 
                 removed += EventCleanup.RemoveDestroyedDelegateMemberOwners(vessel.orbitRenderer, "onVesselIconClicked");

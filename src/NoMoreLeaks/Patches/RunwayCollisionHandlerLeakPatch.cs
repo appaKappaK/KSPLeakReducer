@@ -7,15 +7,15 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(RunwayCollisionHandler __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         private static void Postfix(RunwayCollisionHandler __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        private static void Cleanup(RunwayCollisionHandler instance)
+        private static void CleanupCallbacks(RunwayCollisionHandler instance)
         {
             EventCleanup.RemoveOwner(DestructibleBuilding.OnLoaded, instance);
             EventCleanup.RemoveGameEvent(DestructibleBuilding.OnLoaded, instance, "OnSectionLoaded");

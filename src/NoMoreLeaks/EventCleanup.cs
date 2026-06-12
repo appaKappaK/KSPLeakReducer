@@ -363,9 +363,21 @@ namespace NoMoreLeaks
                 return 0;
             }
 
+            ArrayList eventSources = new ArrayList();
+            try
+            {
+                foreach (DictionaryEntry eventEntry in eventsByName)
+                    eventSources.Add(eventEntry.Value);
+            }
+            catch (InvalidOperationException)
+            {
+                NoMoreLeaksSettings.LogDebug("Deferred broad stock sweep because the GameEvents registry changed");
+                return 0;
+            }
+
             int removed = 0;
-            foreach (DictionaryEntry eventEntry in eventsByName)
-                removed += RemoveDestroyedAssemblyOwnersFromEventSource(eventEntry.Value, StockAssembly);
+            for (int i = 0; i < eventSources.Count; i++)
+                removed += RemoveDestroyedAssemblyOwnersFromEventSource(eventSources[i], StockAssembly);
 
             return removed;
         }

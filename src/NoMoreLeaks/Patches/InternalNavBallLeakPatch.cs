@@ -7,15 +7,15 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(InternalNavBall __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         private static void Postfix(InternalNavBall __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        private static void Cleanup(InternalNavBall instance)
+        private static void CleanupCallbacks(InternalNavBall instance)
         {
             EventCleanup.RemoveOwner(GameEvents.onVesselChange, instance);
         }

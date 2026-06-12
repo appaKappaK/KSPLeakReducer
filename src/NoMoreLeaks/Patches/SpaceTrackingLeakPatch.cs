@@ -8,15 +8,15 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(SpaceTracking __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         private static void Postfix(SpaceTracking __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        private static void Cleanup(SpaceTracking instance)
+        private static void CleanupCallbacks(SpaceTracking instance)
         {
             EventCleanup.RemoveOwner(GameEvents.OnMapViewFiltersModified, instance);
             EventCleanup.RemoveOwner(GameEvents.onInputLocksModified, instance);
@@ -24,11 +24,12 @@ namespace NoMoreLeaks.Patches
             EventCleanup.RemoveOwner(GameEvents.onGUIRecoveryDialogDespawn, instance);
             EventCleanup.RemoveOwner(GameEvents.onPlanetariumTargetChanged, instance);
 
-            if (FlightGlobals.Vessels == null) return;
+            var vessels = FlightGlobals.fetch == null ? null : FlightGlobals.fetch.vessels;
+            if (vessels == null) return;
 
-            for (int i = 0; i < FlightGlobals.Vessels.Count; i++)
+            for (int i = 0; i < vessels.Count; i++)
             {
-                Vessel vessel = FlightGlobals.Vessels[i];
+                Vessel vessel = vessels[i];
                 if (vessel == null || vessel.orbitRenderer == null) continue;
 
                 EventCleanup.RemoveDelegatesOwnedBy(vessel.orbitRenderer, "onVesselIconClicked", instance);

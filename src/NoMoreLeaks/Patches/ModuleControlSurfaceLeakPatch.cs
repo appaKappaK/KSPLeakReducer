@@ -9,24 +9,24 @@ namespace NoMoreLeaks.Patches
         [HarmonyPatch("OnStart")]
         private static void OnStartPrefix(ModuleControlSurface __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         [HarmonyPrefix]
         [HarmonyPatch("OnDestroy")]
         private static void OnDestroyPrefix(ModuleControlSurface __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         [HarmonyPostfix]
         [HarmonyPatch("OnDestroy")]
         private static void OnDestroyPostfix(ModuleControlSurface __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        internal static void Cleanup(ModuleControlSurface instance)
+        internal static void CleanupCallbacks(ModuleControlSurface instance)
         {
             EventCleanup.RemoveGameEvent(GameEvents.onEditorPartEvent, instance, "OnEditorPartEvent");
             EventCleanup.RemoveGameEvent(GameEvents.onPartActionUIShown, instance, "OnPartActionUIShown");

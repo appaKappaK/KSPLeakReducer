@@ -7,7 +7,7 @@ namespace NoMoreLeaks
     [KSPAddon(KSPAddon.Startup.Instantly, true)]
     public sealed class Startup : MonoBehaviour
     {
-        private const string HarmonyId = "matth.nomoreleaks";
+        private const string HarmonyId = "nomoreleaks.ksp";
         private const float SweepInterval = 0.5f;
         private float nextSweep;
 

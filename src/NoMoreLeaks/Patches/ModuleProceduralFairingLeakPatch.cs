@@ -7,15 +7,15 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(ModuleProceduralFairing __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         private static void Postfix(ModuleProceduralFairing __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        private static void Cleanup(ModuleProceduralFairing instance)
+        private static void CleanupCallbacks(ModuleProceduralFairing instance)
         {
             EventCleanup.RemoveOwner(GameEvents.onVariantApplied, instance);
             EventCleanup.RemoveOwner(GameEvents.onVariantsAdded, instance);

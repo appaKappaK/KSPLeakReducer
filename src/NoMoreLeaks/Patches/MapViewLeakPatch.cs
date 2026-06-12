@@ -7,15 +7,15 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(MapView __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         private static void Postfix(MapView __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        private static void Cleanup(MapView instance)
+        private static void CleanupCallbacks(MapView instance)
         {
             object timingManager = EventCleanup.GetStaticMember(typeof(TimingManager), "Instance");
             object timing5 = EventCleanup.GetInstanceField(timingManager, "timing5");

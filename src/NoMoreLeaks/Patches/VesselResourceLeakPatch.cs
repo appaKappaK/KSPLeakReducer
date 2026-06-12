@@ -7,10 +7,10 @@ namespace NoMoreLeaks.Patches
     {
         private static void Postfix(Vessel __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        private static void Cleanup(Vessel vessel)
+        private static void CleanupCallbacks(Vessel vessel)
         {
             EventCleanup.RemoveOwnersWhere(
                 GameEvents.onPartResourceFlowStateChange,

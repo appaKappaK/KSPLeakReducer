@@ -12,24 +12,24 @@ namespace NoMoreLeaks.Patches
             if (HighLogic.LoadedSceneIsEditor)
                 InventoryCallbackSweeper.SweepEditorInventoryCallbacks();
 
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         [HarmonyPrefix]
         [HarmonyPatch("OnDestroy")]
         private static void OnDestroyPrefix(ModuleInventoryPart __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         [HarmonyPostfix]
         [HarmonyPatch("OnDestroy")]
         private static void OnDestroyPostfix(ModuleInventoryPart __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        internal static void Cleanup(ModuleInventoryPart instance)
+        internal static void CleanupCallbacks(ModuleInventoryPart instance)
         {
             EventCleanup.RemoveOwner(GameEvents.onPartActionUICreate, instance);
             EventCleanup.RemoveOwner(GameEvents.onModuleInventoryChanged, instance);

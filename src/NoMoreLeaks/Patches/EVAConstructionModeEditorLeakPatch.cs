@@ -7,15 +7,15 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(EVAConstructionModeEditor __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         private static void Postfix(EVAConstructionModeEditor __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        private static void Cleanup(EVAConstructionModeEditor instance)
+        private static void CleanupCallbacks(EVAConstructionModeEditor instance)
         {
             object angleSnapButton = EventCleanup.GetInstanceField(instance, "angleSnapButton");
             EventCleanup.RemoveDelegatesOwnedBy(angleSnapButton, "onClick", instance);

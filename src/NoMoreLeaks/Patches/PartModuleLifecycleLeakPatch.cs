@@ -1,4 +1,5 @@
 using HarmonyLib;
+using System.Collections.Generic;
 
 namespace NoMoreLeaks.Patches
 {
@@ -24,23 +25,42 @@ namespace NoMoreLeaks.Patches
             {
                 if (part.Modules[i] is ModuleInventoryPart inventoryPart)
                 {
-                    ModuleInventoryPartLeakPatch.Cleanup(inventoryPart);
+                    ModuleInventoryPartLeakPatch.CleanupCallbacks(inventoryPart);
                     cleanedModules++;
                 }
                 else if (part.Modules[i] is ModuleControlSurface controlSurface)
                 {
-                    ModuleControlSurfaceLeakPatch.Cleanup(controlSurface);
+                    ModuleControlSurfaceLeakPatch.CleanupCallbacks(controlSurface);
                     cleanedModules++;
                 }
                 else if (part.Modules[i] is ModuleGroundPart groundPart)
                 {
-                    ModuleGroundPartLeakPatch.Cleanup(groundPart);
+                    ModuleGroundPartLeakPatch.CleanupCallbacks(groundPart);
                     cleanedModules++;
                 }
             }
 
             if (cleanedModules > 0)
                 LogLifecycleCleanup(part, cleanedModules, reason);
+        }
+
+        internal static void CleanupPartHierarchy(Part part, string reason = null)
+        {
+            if (part == null) return;
+
+            HashSet<Part> visited = new HashSet<Part>();
+            CleanupPartHierarchy(part, reason, visited);
+        }
+
+        private static void CleanupPartHierarchy(Part part, string reason, HashSet<Part> visited)
+        {
+            if (part == null || !visited.Add(part)) return;
+
+            CleanupPartModules(part, reason);
+
+            if (part.children == null) return;
+            for (int i = 0; i < part.children.Count; i++)
+                CleanupPartHierarchy(part.children[i], reason, visited);
         }
 
         private static void LogLifecycleCleanup(Part part, int cleanedModules, string reason)
@@ -64,7 +84,7 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(Part __instance)
         {
-            PartModuleLifecycleLeakPatch.CleanupPartModules(__instance, "Part.OnDelete.Prefix");
+            PartModuleLifecycleLeakPatch.CleanupPartHierarchy(__instance, "Part.OnDelete.Prefix");
         }
     }
 
@@ -85,17 +105,17 @@ namespace NoMoreLeaks.Patches
         {
             if (module is ModuleInventoryPart inventoryPart)
             {
-                ModuleInventoryPartLeakPatch.Cleanup(inventoryPart);
+                ModuleInventoryPartLeakPatch.CleanupCallbacks(inventoryPart);
                 LogModuleCleanup(module, reason);
             }
             else if (module is ModuleControlSurface controlSurface)
             {
-                ModuleControlSurfaceLeakPatch.Cleanup(controlSurface);
+                ModuleControlSurfaceLeakPatch.CleanupCallbacks(controlSurface);
                 LogModuleCleanup(module, reason);
             }
             else if (module is ModuleGroundPart groundPart)
             {
-                ModuleGroundPartLeakPatch.Cleanup(groundPart);
+                ModuleGroundPartLeakPatch.CleanupCallbacks(groundPart);
                 LogModuleCleanup(module, reason);
             }
         }

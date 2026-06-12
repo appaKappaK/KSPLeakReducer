@@ -18,17 +18,17 @@ namespace NoMoreLeaks.Patches
         [HarmonyPatch("OnDestroy")]
         private static void OnDestroyPrefix(VesselAutopilotUI __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         [HarmonyPostfix]
         [HarmonyPatch("OnDestroy")]
         private static void OnDestroyPostfix(VesselAutopilotUI __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        private static void Cleanup(VesselAutopilotUI instance)
+        private static void CleanupCallbacks(VesselAutopilotUI instance)
         {
             EventCleanup.RemoveOwner(GameEvents.OnGameSettingsApplied, instance);
             EventCleanup.RemoveOwner(GameEvents.onVesselChange, instance);

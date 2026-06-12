@@ -4,15 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-This project uses a simple retrospective `MAJOR.MINOR.PATCH` scheme:
-
-- patch (`#.#.1`) for small fixes, doc updates, and low-risk cleanup changes
-- minor (`#.1.#`) for medium leak-coverage passes or workflow improvements
-- major (`1.#.#`) for large structural changes in how the mod works
-
-Older entries below were reconstructed from commit history and testing notes so the version history matches the work that already happened.
-
 ## [Unreleased]
+
+## [1.7.0] - 2026-06-12
+
+### Added
+
+- Cleanup before `ModuleInventoryPart.DeletePartObject` destroys an inventory-spawned part, including its child-part hierarchy.
+- Inventory callback sweeps after both `UIPartActionControllerInventory.CreatePartFromInventory` overloads.
+- Explicit assembly and file version metadata so the built plugin reports the release version instead of `0.0.0.0`.
+
+### Fixed
+
+- Renamed patch helper methods from Harmony's reserved `Cleanup` name to `CleanupCallbacks`. Harmony previously treated those helpers as patch-cleanup methods and could abort `PatchAll()`, notably when `SpaceTrackingLeakPatch` accessed `FlightGlobals.Vessels` during startup.
+- Explicit subtree-deletion paths now clean callback-owning modules throughout the affected child-part hierarchy instead of cleaning only the root part.
+- Space-tracking callback cleanup no longer accesses the vessel list before `FlightGlobals` exists during startup or scene transitions.
+- Broad stock callback cleanup now snapshots the GameEvents registry and safely defers a pass if KSP changes the registry during enumeration.
+
+### Changed
+
+- Internal and packaged version metadata updated to `1.7.0`.
+- Harmony patch ownership now uses the neutral `nomoreleaks.ksp` identifier.
+- Removed accidentally tracked build intermediates containing local build paths.
 
 ## [1.6.0] - 2026-06-05
 

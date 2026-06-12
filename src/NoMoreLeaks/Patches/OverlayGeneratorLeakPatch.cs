@@ -7,15 +7,15 @@ namespace NoMoreLeaks.Patches
     {
         private static void Prefix(OverlayGenerator __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
         private static void Postfix(OverlayGenerator __instance)
         {
-            Cleanup(__instance);
+            CleanupCallbacks(__instance);
         }
 
-        private static void Cleanup(OverlayGenerator instance)
+        private static void CleanupCallbacks(OverlayGenerator instance)
         {
             EventCleanup.RemoveOwner(GameEvents.onGameStateLoad, instance);
             EventCleanup.RemoveOwner(GameEvents.onPlanetariumTargetChanged, instance);
