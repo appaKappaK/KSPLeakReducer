@@ -2,7 +2,7 @@
 
 This directory is reserved for NoMoreLeaks development notes and local
 KSPCommunityFixes memory-leak exports. Generated export files are ignored by
-git; this README is the only tracked file in the directory.
+git; this README and the public export helper are tracked.
 
 ## Versioning
 
@@ -93,9 +93,17 @@ It also sweeps inventory callbacks after both
 ## Validation Workflow
 
 Use KSPCommunityFixes memory-leak logging and compare exported summaries before
-and after a test run. The local `exp-memleaks.sh` helper writes timestamped
-exports into this directory when the helper is present beside `summaries/`.
-The helper and generated exports are intentionally ignored by git.
+and after a test run. Run the public `exp-memleaks.sh` helper with a KSP log:
+
+```bash
+./summaries/exp-memleaks.sh /path/to/KSP.log
+```
+
+It writes timestamped exports into this directory by default. Pass an existing
+output directory as the second argument to write them elsewhere. The helper
+refuses to overwrite an export with the same timestamp. Generated exports are
+ignored by git, but raw exports can contain mod names, object identifiers, and
+matching log lines, so review them before sharing publicly.
 
 Important generated files include:
 

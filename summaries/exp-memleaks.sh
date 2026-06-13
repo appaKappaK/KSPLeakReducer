@@ -3,29 +3,92 @@
 # Extract and summarise memory leak data from a KSP log file.
 #
 # Usage:
-#   ./exp-memleaks.sh [log_file]
+#   ./exp-memleaks.sh [log_file] [output_dir]
 #
-# All output filenames are timestamped. If a summaries directory exists beside
-# this script, outputs are written there; otherwise they use the current
-# directory.
+# All output filenames are timestamped and written beside this script unless an
+# output directory is supplied.
 # Override the timestamp via: EXPORT_LEAKS_TIMESTAMP=my-label ./exp-memleaks.sh
 
 set -euo pipefail
+
+# Keep summaries stable across different user locales.
+export LC_ALL=C
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+die()  { echo "error: $*" >&2; exit 1; }
+info() { echo "  $*"; }
+
+usage() {
+    cat <<'EOF'
+Usage:
+  exp-memleaks.sh [log_file] [output_dir]
+
+Extract and summarize KSPCommunityFixes and NoMoreLeaks memory-leak diagnostics.
+
+Arguments:
+  log_file    KSP log to scan (default: ./KSP.log)
+  output_dir  Existing directory for exports (default: beside this script)
+
+Environment:
+  EXPORT_LEAKS_TIMESTAMP  Safe filename label replacing the generated timestamp
+
+The script refuses to overwrite exports with the same timestamp.
+Raw exports can contain mod names, object identifiers, and matching log lines;
+review them before sharing publicly.
+EOF
+}
+
+count_lines() { wc -l < "$1"; }
+
+count_matches() {
+    local pattern="$1" file="$2" count
+    count=$(grep -Ec "$pattern" "$file" || true)
+    echo "${count:-0}"
+}
+
+# Search wrapper: prefers rg, falls back to grep -E.
+search() {
+    local pattern="$1" file="$2"
+    if command -v rg >/dev/null 2>&1; then
+        rg -e "$pattern" -- "$file"
+    else
+        grep -E "$pattern" -- "$file"
+    fi
+}
+
+search_n() {
+    local pattern="$1" file="$2"
+    if command -v rg >/dev/null 2>&1; then
+        rg -n -e "$pattern" -- "$file"
+    else
+        grep -nE "$pattern" -- "$file"
+    fi
+}
 
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
 
-readonly TIMESTAMP="${EXPORT_LEAKS_TIMESTAMP:-$(date +%Y-%m-%d_%H-%M-%S)}"
-readonly LOG_FILE="${1:-KSP.log}"
+case "${1:-}" in
+    -h|--help)
+        usage
+        exit 0
+        ;;
+esac
+
+[[ "$#" -le 2 ]] || {
+    usage >&2
+    exit 2
+}
+
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly SCRIPT_DIR
-
-if [[ -d "$SCRIPT_DIR/summaries" ]]; then
-    readonly OUTPUT_DIR="$SCRIPT_DIR/summaries"
-else
-    readonly OUTPUT_DIR="$PWD"
-fi
+readonly TIMESTAMP="${EXPORT_LEAKS_TIMESTAMP:-$(date +%Y-%m-%d_%H-%M-%S)}"
+readonly LOG_FILE="${1:-KSP.log}"
+readonly OUTPUT_DIR="${2:-$SCRIPT_DIR}"
 
 readonly OUT_RAW="$OUTPUT_DIR/KSPCF-memory-leaks-raw-${TIMESTAMP}.txt"
 readonly OUT_SUMMARY="$OUTPUT_DIR/KSPCF-memory-leaks-summary-${TIMESTAMP}.txt"
@@ -48,56 +111,58 @@ readonly PAT_WARNINGS='(\[(WRN|ERR|EXC) [^]]+\].*(NoMoreLeaks|Harmony|KSPCF:Memo
 readonly SUMMARY_MAX_LINES=40
 readonly WARNINGS_PREVIEW_LINES=80
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-die()  { echo "error: $*" >&2; exit 1; }
-info() { echo "  $*"; }
-
-count_lines() { wc -l < "$1"; }
-
-count_matches() {
-    local pattern="$1" file="$2" count
-    count=$(grep -Ec "$pattern" "$file" || true)
-    echo "${count:-0}"
-}
-
-# Search wrapper — prefers rg, falls back to grep -E
-search() {
-    local pattern="$1" file="$2"
-    if command -v rg &>/dev/null; then
-        rg -e "$pattern" -- "$file"
-    else
-        grep -E "$pattern" -- "$file"
-    fi
-}
-
-search_n() {   # with line numbers
-    local pattern="$1" file="$2"
-    if command -v rg &>/dev/null; then
-        rg -n -e "$pattern" -- "$file"
-    else
-        grep -nE "$pattern" -- "$file"
-    fi
-}
+readonly -a OUTPUT_FILES=(
+    "$OUT_RAW"
+    "$OUT_SUMMARY"
+    "$OUT_UNHANDLED_RAW"
+    "$OUT_UNHANDLED_SUMMARY"
+    "$OUT_SCENES"
+    "$OUT_SCENES_SUMMARY"
+    "$OUT_WARNINGS"
+    "$OUT_WARNINGS_SUMMARY"
+    "$OUT_NML_RAW"
+    "$OUT_NML_SUMMARY"
+    "$OUT_NML_MARKERS"
+)
 
 # ---------------------------------------------------------------------------
 # Pre-flight checks
 # ---------------------------------------------------------------------------
 
+for command_name in awk date grep head mktemp sed sort tr uniq wc; do
+    command -v "$command_name" >/dev/null 2>&1 ||
+        die "required command not found: $command_name"
+done
+
 [[ -f "$LOG_FILE" ]] || die "log file not found: $LOG_FILE"
+[[ -r "$LOG_FILE" ]] || die "log file is not readable: $LOG_FILE"
+[[ -d "$OUTPUT_DIR" ]] || die "output directory not found: $OUTPUT_DIR"
+[[ -w "$OUTPUT_DIR" ]] || die "output directory is not writable: $OUTPUT_DIR"
+[[ "$TIMESTAMP" =~ ^[A-Za-z0-9._-]+$ ]] ||
+    die "EXPORT_LEAKS_TIMESTAMP may contain only letters, numbers, dots, underscores, and hyphens"
+
+for output_file in "${OUTPUT_FILES[@]}"; do
+    [[ ! -e "$output_file" ]] ||
+        die "refusing to overwrite existing export: $output_file"
+done
 
 # KSP (and Proton) writes CRLF; strip it so regex anchors work correctly
-CLEAN_LOG="$(mktemp --suffix=.ksplog)"
-trap 'rm -f "$CLEAN_LOG"' EXIT
+CLEAN_LOG="$(mktemp "${TMPDIR:-/tmp}/nomoreleaks.XXXXXX")"
+SUCCESS=0
+cleanup() {
+    rm -f "$CLEAN_LOG"
+    if [[ "$SUCCESS" -eq 0 ]]; then
+        rm -f "${OUTPUT_FILES[@]}"
+    fi
+}
+trap cleanup EXIT
 tr -d '\r' < "$LOG_FILE" > "$CLEAN_LOG"
 
 # ---------------------------------------------------------------------------
 # Extract
 # ---------------------------------------------------------------------------
 
-echo "Scanning $(realpath "$LOG_FILE") ..."
+echo "Scanning $LOG_FILE ..."
 echo "Writing outputs to $OUTPUT_DIR"
 echo
 
@@ -132,18 +197,33 @@ sed -E 's/^.*A destroyed ([^ ]+) instance is owning a ([^ ]+) callback\..*$/\1 |
 # Scene cleanup totals are useful context because KSPCF's "cleaned N memory
 # leaks" includes unhandled entries that are not in the removed-callback file.
 awk '
-    match($0, /Leaving scene "([^"]+)", cleaned ([0-9]+) memory leaks.*GameEvents callbacks : ([0-9]+).*Allocated memory : ([0-9.]+) GiB \(managed heap\), ([0-9.]+) GiB \(unmanaged\)/, p) {
-        scene = p[1]
-        cleaned = p[2] + 0
+    /Leaving scene ".*", cleaned [0-9]+ memory leaks.*GameEvents callbacks : [0-9]+.*Allocated memory : [0-9.]+ GiB \(managed heap\), [0-9.]+ GiB \(unmanaged\)/ {
+        scene = $0
+        sub(/^.*Leaving scene "/, "", scene)
+        sub(/".*$/, "", scene)
+
+        cleaned = $0
+        sub(/^.*cleaned /, "", cleaned)
+        sub(/ memory leaks.*$/, "", cleaned)
+        cleaned += 0
+
+        callbacks = $0
+        sub(/^.*GameEvents callbacks : /, "", callbacks)
+        sub(/[^0-9].*$/, "", callbacks)
+
+        memory = $0
+        sub(/^.*Allocated memory : /, "", memory)
+        split(memory, memory_parts, / GiB \(managed heap\), | GiB \(unmanaged\)/)
+
         total += cleaned
         changes++
         scene_count[scene]++
         scene_sum[scene] += cleaned
         if (cleaned > scene_max[scene])
             scene_max[scene] = cleaned
-        last_callbacks = p[3]
-        last_managed = p[4]
-        last_unmanaged = p[5]
+        last_callbacks = callbacks
+        last_managed = memory_parts[1]
+        last_unmanaged = memory_parts[2]
     }
     END {
         printf "%7d total cleaned across %d scene change(s)\n", total, changes
@@ -169,8 +249,25 @@ sed -E 's/^[0-9]+:\[(WRN|ERR|EXC) [^]]+\] /\1 | /; s/[0-9]{4,}/<id>/g' \
 # ---------------------------------------------------------------------------
 
 awk '
-    match($0, /Removed ([0-9]+) callback\(s\) from (.*) owned by ([^ ]+) via (.*)$/, p) {
-        sums[p[3] " | " p[2] " | " p[4]] += p[1]
+    /Removed [0-9]+ callback\(s\) from .* owned by [^ ]+ via .*$/ {
+        entry = $0
+        sub(/^.*\[NoMoreLeaks:Debug\] Removed /, "", entry)
+
+        count = entry
+        sub(/ .*/, "", count)
+
+        callback = entry
+        sub(/^[0-9]+ callback\(s\) from /, "", callback)
+        sub(/ owned by .*$/, "", callback)
+
+        owner = entry
+        sub(/^.* owned by /, "", owner)
+        sub(/ via .*$/, "", owner)
+
+        path = entry
+        sub(/^.* via /, "", path)
+
+        sums[owner " | " callback " | " path] += count
     }
     END {
         for (k in sums)
@@ -248,3 +345,5 @@ if [[ "$n_leaks" -eq 0 && "$n_unhandled" -eq 0 && "$n_scenes" -eq 0 && "$n_debug
     echo "  • The symlink points to the wrong or an outdated KSP.log"
     echo "  • The log is from a session that had no leaks"
 fi
+
+SUCCESS=1
