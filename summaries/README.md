@@ -166,8 +166,9 @@ KSPCommunityFixes during the control session.
 
 ### Archived Export Review
 
-All locally generated June 2026 exports have been reviewed. Allocation delta is
-measured from the first to final scene-exit sample in each export.
+All locally generated June 2026 exports through `2026-06-13_00-09-06` have
+been reviewed. Allocation delta is measured from the first to final scene-exit
+sample in each export.
 
 | Export | NoMoreLeaks state | Scene exits | Final allocation | Allocation delta | Callbacks in KSPCF handled summary |
 | --- | --- | ---: | ---: | ---: | ---: |
@@ -180,6 +181,8 @@ measured from the first to final scene-exit sample in each export.
 | `2026-06-11_06-18-43` | Full patch install; vessel-list guard verified | 23 | 12.823 GiB | +2.724 GiB | 1 |
 | `2026-06-11_22-40-51` | Full patch install; event-registry race found | 52 | 15.918 GiB | +5.945 GiB | 1 |
 | `2026-06-12_02-38-13` | Full patch install; inventory deletion verified | 35 | 18.495 GiB | +7.152 GiB | 1 |
+| `2026-06-12_05-20-57` | Full patch install; editor-heavy deployed-science follow-up | 32 | 16.450 GiB | +5.447 GiB | 1 |
+| `2026-06-13_00-09-06` | Full patch install; short flight-focused follow-up | 7 | 12.270 GiB | +1.893 GiB | 1 |
 
 The older partial-install exports show that proactive cleanup was running and
 substantially reduced covered stock residue, but they cannot establish the
@@ -219,6 +222,40 @@ itself remains untested. The same run logged 296 child-bearing
 lifecycle cleanup, supporting the final decision to limit `Part.OnDestroy` to
 the part actually being destroyed.
 
+The later June 12 follow-up was more editor-heavy and repeatedly exercised
+ground-science, cargo, and editor destroy-selected cleanup, but did not hit
+`ModuleInventoryPart.DeletePartObject`. It again left only the intentionally
+unpatched RealAntennas callback in KSPCommunityFixes' handled summary. KSPCF's
+per-scene `cleaned N` totals were still large, especially in Editor and Flight,
+which is consistent with repeated counts of unhandled third-party residue and
+broader scene-cleanup accounting rather than a return of covered stock callback
+owners. This was the first run after limiting `Part.OnDestroy` cleanup to the
+part actually being destroyed; 32 scene exits, five proactive editor-exit
+sweeps, and 19 destroy-selected cleanups completed without covered stock
+residue. Its final GameEvents callback count remained close to the prior run
+(`1,446` versus `1,480`). This run also reintroduced deployed-science
+missing-vessel warnings, supporting the conclusion that they are intermittent
+save-state noise rather than a NoMoreLeaks callback target.
+
+The June 13 short follow-up covered only seven scene exits and appears to be
+mostly flight-focused. It again left only the intentionally unpatched
+RealAntennas callback in KSPCommunityFixes' handled summary, reported no
+NoMoreLeaks warnings or exceptions, and its broad stock sweep cleaned destroyed
+`AudioFX` pause and unpause callback owners. Its smaller total allocation
+increase reflects the short run rather than demonstrated memory improvement:
+normalized by scene exits, its increase was about `0.270 GiB` per exit,
+compared with about `0.170 GiB` and `0.204 GiB` in the longer June 12 runs.
+Managed memory fell from a `5.840 GiB` peak to `4.739 GiB` at the final exit
+and unmanaged memory stayed relatively flat, but the run is too short to
+establish a trend. Its final GameEvents callback count of `3,397` is elevated
+and should be watched in a longer comparable flight run. It did not exercise
+the editor-exit proactive sweep or inventory-deletion cleanup paths.
+
+Together, these post-release follow-ups add 39 scene exits with no NoMoreLeaks
+exceptions and no covered stock callback residue. They provide a useful
+no-regression check for the safer `Part.OnDestroy` behavior, but do not yet
+demonstrate lower long-session memory growth.
+
 ### Known Unhandled Third-Party Residue
 
 These callback owners recur in the unhandled summaries and remain outside the
@@ -236,8 +273,9 @@ Patch Targets. NoMoreLeaks cleans the separate Kerbal Planetary Base Systems
 clean `PlanetsideExplorationTechnologies.OnGameSettingsApplied`.
 
 Earlier exports also contain repeated deployed-science missing-vessel warnings.
-Those disappeared after the affected deployed experiments were removed and are
-save-state noise rather than a NoMoreLeaks callback target.
+They were absent in `2026-06-12_02-38-13` but reappeared in
+`2026-06-12_05-20-57`, so treat them as intermittent save-state noise rather
+than a NoMoreLeaks callback target.
 
 ## Current State
 
@@ -260,6 +298,10 @@ As of `1.7.0`:
   prevents the vessel-list exception.
 - The June 12 follow-up run completed 35 scene exits without another GameEvents
   registry-enumeration exception.
+- The later June 12 and June 13 follow-up runs added 39 scene exits with no
+  covered stock callbacks in KSPCF's handled summary or NoMoreLeaks exceptions,
+  validating the narrowed `Part.OnDestroy` behavior without showing a
+  long-session memory-growth improvement yet.
 - Inventory placement cancellation and deployed-part teardown now validate the
   new `DeletePartObject` cleanup path.
 
