@@ -25,7 +25,8 @@ KSPCF-memory-leaks-*.txt
 NoMoreLeaks-debug-*.txt
 instructions.txt
 /exp-memleaks.sh
+/exp-memleaks
 /export-ksp-memleaks.sh
 /summaries/*
 !/summaries/README.md
-!/summaries/exp-memleaks.sh
+!/summaries/exp-memleaks

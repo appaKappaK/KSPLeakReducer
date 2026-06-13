@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# exp-memleaks.sh
+# exp-memleaks
 # Extract and summarise memory leak data from a KSP log file.
 #
 # Usage:
-#   ./exp-memleaks.sh [log_file] [output_dir]
+#   ./exp-memleaks [log_file] [output_dir]
 #
-# All output filenames are timestamped and written beside this script unless an
-# output directory is supplied.
-# Override the timestamp via: EXPORT_LEAKS_TIMESTAMP=my-label ./exp-memleaks.sh
+# All output filenames are timestamped and written into a summaries directory
+# beside this script when present, otherwise beside the script itself. An
+# explicit output directory overrides that default.
+# Override the timestamp via: EXPORT_LEAKS_TIMESTAMP=my-label ./exp-memleaks
 
 set -euo pipefail
 
@@ -24,13 +25,14 @@ info() { echo "  $*"; }
 usage() {
     cat <<'EOF'
 Usage:
-  exp-memleaks.sh [log_file] [output_dir]
+  exp-memleaks [log_file] [output_dir]
 
 Extract and summarize KSPCommunityFixes and NoMoreLeaks memory-leak diagnostics.
 
 Arguments:
   log_file    KSP log to scan (default: ./KSP.log)
-  output_dir  Existing directory for exports (default: beside this script)
+  output_dir  Existing directory for exports (default: repository summaries
+              directory when found, otherwise beside this script)
 
 Environment:
   EXPORT_LEAKS_TIMESTAMP  Safe filename label replacing the generated timestamp
@@ -88,7 +90,14 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly SCRIPT_DIR
 readonly TIMESTAMP="${EXPORT_LEAKS_TIMESTAMP:-$(date +%Y-%m-%d_%H-%M-%S)}"
 readonly LOG_FILE="${1:-KSP.log}"
-readonly OUTPUT_DIR="${2:-$SCRIPT_DIR}"
+
+if [[ -d "$SCRIPT_DIR/summaries" ]]; then
+    readonly DEFAULT_OUTPUT_DIR="$SCRIPT_DIR/summaries"
+else
+    readonly DEFAULT_OUTPUT_DIR="$SCRIPT_DIR"
+fi
+
+readonly OUTPUT_DIR="${2:-$DEFAULT_OUTPUT_DIR}"
 
 readonly OUT_RAW="$OUTPUT_DIR/KSPCF-memory-leaks-raw-${TIMESTAMP}.txt"
 readonly OUT_SUMMARY="$OUTPUT_DIR/KSPCF-memory-leaks-summary-${TIMESTAMP}.txt"
@@ -106,7 +115,7 @@ readonly PAT_LEAKS='\[KSPCF:MemoryLeaks\] Removed a .* callback owned by a destr
 readonly PAT_UNHANDLED='\[KSPCF:MemoryLeaks\] A destroyed .* instance is owning a .* callback\. No action has been taken'
 readonly PAT_SCENES='\[KSPCF:MemoryLeaks\] Leaving scene ".*", cleaned [0-9]+ memory leaks'
 readonly PAT_NML_DEBUG='\[NoMoreLeaks:Debug\]'
-readonly PAT_WARNINGS='(\[(WRN|ERR|EXC) [^]]+\].*(NoMoreLeaks|Harmony|KSPCF:MemoryLeaks|TransmitterModule|ModuleScienceLab|ModuleScienceExperiment|DeployedScienceExperiment|GroundScience|CommNet|RealAntennas|Cannot Transmit|No usable|Failed to find Vessel for Experiment|Collection was modified)|\[NoMoreLeaks\].*(Missing|Could not|Exception|[Ff]ail|[Ww]arning))'
+readonly PAT_WARNINGS='(\[EXC [^]]+\]|\[(WRN|ERR) [^]]+\].*(NoMoreLeaks|Harmony|KSPCF:MemoryLeaks|TransmitterModule|ModuleScienceLab|ModuleScienceExperiment|DeployedScienceExperiment|GroundScience|CommNet|RealAntennas|Cannot Transmit|No usable|Failed to find Vessel for Experiment|Collection was modified)|\[NoMoreLeaks\].*(Missing|Could not|Exception|[Ff]ail|[Ww]arning))'
 
 readonly SUMMARY_MAX_LINES=40
 readonly WARNINGS_PREVIEW_LINES=80
@@ -302,7 +311,7 @@ info "$n_leaks  KSPCF leak callback lines  →  $OUT_RAW"
 info "$n_unhandled  KSPCF unhandled leak lines →  $OUT_UNHANDLED_RAW"
 info "$n_scenes  KSPCF scene cleanup lines   →  $OUT_SCENES"
 info "$n_debug  NoMoreLeaks debug lines    →  $OUT_NML_RAW"
-info "$n_warn   warnings / errors          →  $OUT_WARNINGS"
+info "$n_warn   warnings / errors / exceptions →  $OUT_WARNINGS"
 echo
 echo "Summaries"
 echo "---------"
@@ -326,11 +335,11 @@ if [[ "$n_debug" -gt 0 && ! -s "$OUT_NML_SUMMARY" ]]; then
     echo "         log line format may not match the expected pattern." >&2
 fi
 
-# Print warnings preview
+# Print warnings, errors, and exceptions preview
 if [[ "$n_warn" -gt 0 ]]; then
     echo
-    echo "Warnings / errors (first ${WARNINGS_PREVIEW_LINES}):"
-    echo "---------------------------------------------------"
+    echo "Warnings / errors / exceptions (first ${WARNINGS_PREVIEW_LINES}):"
+    echo "----------------------------------------------------------------"
     head -"$WARNINGS_PREVIEW_LINES" "$OUT_WARNINGS"
     if [[ "$n_warn" -gt "$WARNINGS_PREVIEW_LINES" ]]; then
         echo "... $((n_warn - WARNINGS_PREVIEW_LINES)) more lines — see $OUT_WARNINGS"

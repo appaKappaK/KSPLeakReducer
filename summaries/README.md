@@ -93,10 +93,10 @@ It also sweeps inventory callbacks after both
 ## Validation Workflow
 
 Use KSPCommunityFixes memory-leak logging and compare exported summaries before
-and after a test run. Run the public `exp-memleaks.sh` helper with a KSP log:
+and after a test run. Run the public `exp-memleaks` helper with a KSP log:
 
 ```bash
-./summaries/exp-memleaks.sh /path/to/KSP.log
+./summaries/exp-memleaks /path/to/KSP.log
 ```
 
 It writes timestamped exports into this directory by default. Pass an existing
@@ -113,6 +113,11 @@ Important generated files include:
 - `KSPCF-memory-leaks-warnings-summary-*.txt`
 - `NoMoreLeaks-debug-summary-*.txt`
 - `NoMoreLeaks-debug-markers-*.txt`
+
+The warnings export includes every exception header plus targeted warnings and
+errors related to NoMoreLeaks, KSPCommunityFixes, science, and communications.
+It is intentionally not a complete export of every ordinary KSP warning or
+error.
 
 Treat a run as a complete NoMoreLeaks validation only when the exported
 `Harmony patches applied` marker count is non-zero, or the raw log contains
@@ -174,7 +179,7 @@ KSPCommunityFixes during the control session.
 
 ### Archived Export Review
 
-All locally generated June 2026 exports through `2026-06-13_00-09-06` have
+All locally generated June 2026 exports through `2026-06-13_03-30-47` have
 been reviewed. Allocation delta is measured from the first to final scene-exit
 sample in each export.
 
@@ -191,6 +196,7 @@ sample in each export.
 | `2026-06-12_02-38-13` | Full patch install; inventory deletion verified | 35 | 18.495 GiB | +7.152 GiB | 1 |
 | `2026-06-12_05-20-57` | Full patch install; editor-heavy deployed-science follow-up | 32 | 16.450 GiB | +5.447 GiB | 1 |
 | `2026-06-13_00-09-06` | Full patch install; short flight-focused follow-up | 7 | 12.270 GiB | +1.893 GiB | 1 |
+| `2026-06-13_03-30-47` | Full patch install; long Mun rover flight and reload stress | 19 | 17.108 GiB | +6.168 GiB | 1 |
 
 The older partial-install exports show that proactive cleanup was running and
 substantially reduced covered stock residue, but they cannot establish the
@@ -259,10 +265,35 @@ establish a trend. Its final GameEvents callback count of `3,397` is elevated
 and should be watched in a longer comparable flight run. It did not exercise
 the editor-exit proactive sweep or inventory-deletion cleanup paths.
 
-Together, these post-release follow-ups add 39 scene exits with no NoMoreLeaks
+Those two post-release follow-ups add 39 scene exits with no NoMoreLeaks
 exceptions and no covered stock callback residue. They provide a useful
 no-regression check for the safer `Part.OnDestroy` behavior, but do not yet
 demonstrate lower long-session memory growth.
+
+The later June 13 run covered a roughly three-hour Mun rover trek involving
+docking and resource transfer, repeated crashes, save/load recovery, and cheat
+menu repositioning. Eleven of its 19 scene exits were from Flight, and it
+logged 142 child-bearing lifecycle cleanups. It again left only the
+intentionally unpatched RealAntennas callback in KSPCommunityFixes' handled
+summary and produced no NoMoreLeaks exceptions. This provides a strong
+flight-teardown and reload-stress no-regression check, but did not exercise
+editor or inventory `DeletePartObject` paths.
+
+Allocation increased from `10.940 GiB` at the first scene exit to
+`17.108 GiB` at the final exit, about `0.325 GiB` per exit. Most of the increase
+was managed memory; unmanaged memory peaked at `9.388 GiB` and ended at
+`8.975 GiB`. GameEvents callbacks stayed between `1,460` and `1,676` across
+most Flight exits before ending at `3,286`. Because KSPCommunityFixes found no
+covered destroyed callback owners at that final exit, the elevated count does
+not identify a new NoMoreLeaks target, but remains worth monitoring in another
+comparable long-flight run. The session therefore reinforces cleanup stability
+without demonstrating lower process-memory growth.
+
+The full log also contains 201 `MissingFieldException` entries from
+`SCANmechjeb` looking for `MuMech.MechJebCore.target`. This indicates a binary
+compatibility mismatch between the installed SCANsat/SCANmechjeb and MechJeb
+versions. It is outside NoMoreLeaks' scope, but the repeated exceptions can add
+noise and stutter around vessel modification and vessel-change events.
 
 ### Known Unhandled Third-Party Residue
 
@@ -306,7 +337,7 @@ As of `1.7.0`:
   prevents the vessel-list exception.
 - The June 12 follow-up run completed 35 scene exits without another GameEvents
   registry-enumeration exception.
-- The later June 12 and June 13 follow-up runs added 39 scene exits with no
+- The three later June 12 and June 13 follow-up runs added 58 scene exits with no
   covered stock callbacks in KSPCF's handled summary or NoMoreLeaks exceptions,
   validating the narrowed `Part.OnDestroy` behavior without showing a
   long-session memory-growth improvement yet.
