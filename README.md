@@ -1,8 +1,10 @@
-# NoMoreLeaks
+# 💧 NoMoreLeaks
 
-NoMoreLeaks is a small Kerbal Space Program 1 mod that reduces stock event
-callback memory leaks during scene changes, editor use, vessel unloading, and
-other teardown paths.
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE) [![KSP Version](https://img.shields.io/badge/KSP-1.12.x-green.svg)](https://www.kerbalspaceprogram.com/) [![GitHub release](https://img.shields.io/github/v/release/appaKappaK/NoMoreLeaks.svg)](https://github.com/appaKappaK/NoMoreLeaks/releases)
+
+> **NoMoreLeaks** is a small Kerbal Space Program 1 mod that reduces stock
+> event callback memory leaks during scene changes, editor use, vessel
+> unloading, and other teardown paths.
 
 It works alongside
 [KSPCommunityFixes](https://github.com/KSPModdingLibs/KSPCommunityFixes).
@@ -12,22 +14,22 @@ place.
 
 ## Features
 
-- Reduces callback leaks caused by stock KSP and Breaking Ground modules.
-- Cleans up inventory callbacks during part creation, deletion, editor exit,
-  and launch.
-- Cleans callback-owning modules throughout child-part hierarchies during
+- **Reduces callback leaks** caused by stock KSP and Breaking Ground modules.
+- **Cleans up inventory callbacks** during part creation, deletion, editor
+  exit, and launch.
+- **Cleans callback-owning modules** throughout child-part hierarchies during
   explicit subtree deletion.
-- Handles several map, tracking station, navigation, vessel, and UI teardown
-  cases.
-- Runs lightweight cleanup during play and a broader cleanup during scene
+- **Handles several teardown cases**, including map, tracking station,
+  navigation, vessel, and UI.
+- **Runs lightweight cleanup** during play and a broader cleanup during scene
   changes.
-- Includes optional verbose logging for troubleshooting.
+- **Includes optional verbose logging** for troubleshooting.
 
 ## Requirements
 
-- Kerbal Space Program `1.12.x`
-- Harmony 2
-- KSPCommunityFixes is strongly recommended
+- **Kerbal Space Program** `1.12.x`
+- **Harmony 2**
+- **KSPCommunityFixes** *(strongly recommended)*
 
 ## Installation
 
@@ -44,7 +46,7 @@ GameData/
       NoMoreLeaks.dll
 ```
 
-After starting KSP, `KSP.log` should contain:
+After starting KSP, your `KSP.log` should contain:
 
 ```text
 [NoMoreLeaks] Harmony patches applied
@@ -55,25 +57,25 @@ After starting KSP, `KSP.log` should contain:
 `GameData/NoMoreLeaks/NoMoreLeaks.cfg` contains:
 
 ```text
-NoMoreLeaks
+NOMORELEAKS
 {
     VerboseDebugLogging = true
 }
 ```
 
-Set `VerboseDebugLogging` to `false` to reduce log output. Normal cleanup
-continues to run when verbose logging is disabled.
+> **Tip:** Set `VerboseDebugLogging` to `false` to reduce log output. Normal
+> cleanup continues to run when verbose logging is disabled.
 
 ## Compatibility
 
 NoMoreLeaks targets Kerbal Space Program `1.12.x` and requires Harmony 2. It is
-designed to complement KSPCommunityFixes: NoMoreLeaks tries to prevent selected
-stock callbacks from being stranded, while KSPCommunityFixes detects and cleans
-callbacks that remain.
+designed to complement **KSPCommunityFixes**: NoMoreLeaks tries to prevent
+selected stock callbacks from being stranded, while KSPCommunityFixes detects
+and cleans callbacks that remain.
 
 No other gameplay or content mods are required. NoMoreLeaks includes a small
 number of optional compatibility fixes for known mod interactions, but they are
-used only when the relevant mod is installed.
+used *only* when the relevant mod is installed.
 
 NoMoreLeaks does not attempt broad third-party leak cleanup. Its primary scope
 remains stock KSP and Breaking Ground lifecycle behavior.
@@ -104,14 +106,15 @@ When verbose logging is enabled, detailed cleanup messages begin with:
 [NoMoreLeaks:Debug]
 ```
 
-Include `KSP.log` when reporting a problem.
+**Please include `KSP.log` when reporting a problem.**
 
 ## Project Information
 
 - See [CHANGELOG.md](CHANGELOG.md) for release notes.
 - See [summaries/README.md](summaries/README.md) for development, validation,
   and leak-history notes.
-  
+
 ## License
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **GNU General Public License v3.0**. See the
+[LICENSE](LICENSE) file for details.
