@@ -7,8 +7,8 @@ on:
       - main
     paths:
       - CHANGELOG.md
-      - GameData/NoMoreLeaks/NoMoreLeaks.version
-      - src/NoMoreLeaks/**
+      - GameData/KSPLeakReducer/KSPLeakReducer.version
+      - src/KSPLeakReducer/**
       - .github/workflows/release.yml
 
 permissions:
@@ -38,7 +38,7 @@ jobs:
       - name: Read version
         id: version
         run: |
-          version_json="GameData/NoMoreLeaks/NoMoreLeaks.version"
+          version_json="GameData/KSPLeakReducer/KSPLeakReducer.version"
           major="$(jq -r '.VERSION.MAJOR' "$version_json")"
           minor="$(jq -r '.VERSION.MINOR' "$version_json")"
           patch="$(jq -r '.VERSION.PATCH' "$version_json")"
@@ -85,24 +85,24 @@ jobs:
           test -f "$KSP_ROOT/KSP_x64_Data/Managed/UnityEngine.UIModule.dll"
 
       - name: Build plugin
-        run: xbuild NoMoreLeaks.sln /p:Configuration=Release
+        run: xbuild KSPLeakReducer.sln /p:Configuration=Release
 
       - name: Package GameData
         run: |
           version="${{ steps.version.outputs.version }}"
-          find GameData/NoMoreLeaks/Plugins -maxdepth 1 -type f \
-            ! -name 'NoMoreLeaks.dll' \
-            ! -name 'NoMoreLeaks.dll.mdb' \
+          find GameData/KSPLeakReducer/Plugins -maxdepth 1 -type f \
+            ! -name 'KSPLeakReducer.dll' \
+            ! -name 'KSPLeakReducer.dll.mdb' \
             -delete
-          test -f GameData/NoMoreLeaks/Plugins/NoMoreLeaks.dll
-          zip_name="NoMoreLeaks-v${version}.zip"
-          zip -r "$zip_name" GameData/NoMoreLeaks
+          test -f GameData/KSPLeakReducer/Plugins/KSPLeakReducer.dll
+          zip_name="KSPLeakReducer-v${version}.zip"
+          zip -r "$zip_name" GameData/KSPLeakReducer
           echo "ZIP_NAME=$zip_name" >> "$GITHUB_ENV"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NoMoreLeaks-v${{ steps.version.outputs.version }}
+          name: KSPLeakReducer-v${{ steps.version.outputs.version }}
           path: ${{ env.ZIP_NAME }}
 
       - name: Create or update GitHub release
@@ -111,7 +111,7 @@ jobs:
         run: |
           tag="${{ steps.version.outputs.tag }}"
           version="${{ steps.version.outputs.version }}"
-          title="NoMoreLeaks $version"
+          title="KSPLeakReducer $version"
 
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release edit "$tag" \

@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-06-19
+
+### Changed
+
+- Renamed the mod package, assembly, and shipped `GameData` layout from `NoMoreLeaks` to `KSPLeakReducer`.
+- Added one-release config compatibility so `KSPLeakReducer` will still read the legacy `GameData/NoMoreLeaks/NoMoreLeaks.cfg` file and `NOMORELEAKS` node.
+- Updated Harmony patch ownership to `kspleakreducer.ksp`.
+- Renamed public docs, validation notes, and exported debug marker names from `NoMoreLeaks` to `KSPLeakReducer`.
+- Refined the public leak-summary exporter and refreshed development notes with the latest validation runs.
+
 ## [1.7.0] - 2026-06-12
 
 ### Added
@@ -24,7 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - Internal and packaged version metadata updated to `1.7.0`.
-- Harmony patch ownership now uses the neutral `nomoreleaks.ksp` identifier.
+- Harmony patch ownership now uses the `kspleakreducer.ksp` identifier.
 - Removed accidentally tracked build intermediates containing local build paths.
 
 ## [1.6.0] - 2026-06-05

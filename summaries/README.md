@@ -1,12 +1,12 @@
 # Development And Validation Notes
 
-This directory is reserved for NoMoreLeaks development notes and local
+This directory is reserved for KSPLeakReducer development notes and local
 KSPCommunityFixes memory-leak exports. Generated export files are ignored by
 git; this README and the public export helper are tracked.
 
 ## Versioning
 
-Current project version: `1.7.0`
+Current project version: `1.7.1`
 
 - `#.#.1` patch releases are small fixes, documentation changes, and low-risk
   cleanup adjustments.
@@ -59,7 +59,7 @@ The `EDITOR -> FLIGHT` transition requires special handling because
 tearing down. They therefore slip past cleanup that only removes destroyed
 owners.
 
-NoMoreLeaks hooks `EditorLogic.exitEditor` and proactively cleans live inventory
+KSPLeakReducer hooks `EditorLogic.exitEditor` and proactively cleans live inventory
 modules before teardown begins. The repeated small inventory-only residue in
 June 2026 test runs, while broader stock cleanup was already working, identified
 this timing window.
@@ -67,7 +67,7 @@ this timing window.
 ### Inventory Part Creation And Deletion
 
 Inventory-created parts can strand callbacks when they are deleted before the
-normal part lifecycle finishes. NoMoreLeaks cleans the selected part and its
+normal part lifecycle finishes. KSPLeakReducer cleans the selected part and its
 child-part hierarchy before `ModuleInventoryPart.DeletePartObject` destroys it.
 It also sweeps inventory callbacks after both
 `UIPartActionControllerInventory.CreatePartFromInventory` overloads.
@@ -111,18 +111,18 @@ Important generated files include:
 - `KSPCF-memory-leaks-unhandled-summary-*.txt`
 - `KSPCF-memory-leaks-scenes-summary-*.txt`
 - `KSPCF-memory-leaks-warnings-summary-*.txt`
-- `NoMoreLeaks-debug-summary-*.txt`
-- `NoMoreLeaks-debug-markers-*.txt`
+- `KSPLeakReducer-debug-summary-*.txt`
+- `KSPLeakReducer-debug-markers-*.txt`
 
 The warnings export includes every exception header plus targeted warnings and
-errors related to NoMoreLeaks, KSPCommunityFixes, science, and communications.
+errors related to KSPLeakReducer, KSPCommunityFixes, science, and communications.
 It is intentionally not a complete export of every ordinary KSP warning or
 error.
 
-Treat a run as a complete NoMoreLeaks validation only when the exported
+Treat a run as a complete KSPLeakReducer validation only when the exported
 `Harmony patches applied` marker count is non-zero, or the raw log contains
-`[NoMoreLeaks] Harmony patches applied`. The exporter always prints the marker
-label, even when its count is zero. The four archived runs with NoMoreLeaks
+`[KSPLeakReducer] Harmony patches applied`. The exporter always prints the marker
+label, even when its count is zero. The four archived runs with KSPLeakReducer
 installed contain proactive-cleanup output but report a zero success-marker
 count. They therefore represent partial patch installations from before the
 reserved Harmony `Cleanup` method-name collision was fixed, not full `1.7.0`
@@ -130,18 +130,18 @@ validation runs.
 
 KSPCommunityFixes' per-scene `cleaned N` total includes unhandled observations
 and can repeatedly count persistent third-party callbacks. Use its callback-owner
-summary, NoMoreLeaks markers, and allocation trend together instead of treating
+summary, KSPLeakReducer markers, and allocation trend together instead of treating
 that total as the number of callbacks actually removed.
 
 Covered callback owners should disappear from the KSPCommunityFixes summary or
 drop substantially. Useful runtime markers include:
 
 ```text
-[NoMoreLeaks] Harmony patches applied
-[NoMoreLeaks] Removed N destroyed callback owners
-[NoMoreLeaks] Scene-unload removed N destroyed callback owners
-[NoMoreLeaks:Debug] Proactive sweep via EditorLogic.exitEditor.Prefix
-[NoMoreLeaks:Debug] EditorExit proactive sweep cleaned N live ModuleInventoryPart instance(s)
+[KSPLeakReducer] Harmony patches applied
+[KSPLeakReducer] Removed N destroyed callback owners
+[KSPLeakReducer] Scene-unload removed N destroyed callback owners
+[KSPLeakReducer:Debug] Proactive sweep via EditorLogic.exitEditor.Prefix
+[KSPLeakReducer:Debug] EditorExit proactive sweep cleaned N live ModuleInventoryPart instance(s)
 ```
 
 If inventory entries still appear after the editor-exit marker, subscriptions
@@ -159,7 +159,7 @@ Recurring stock leak classes in older archived reports:
 - `OverlayGenerator`, `MapView`, `RunwayCollisionHandler`,
   `VesselAutopilotUI`, and `NavBallToggle` appeared throughout early testing.
 - `CommNetVessel | onPlanetariumTargetChange` generally stayed near one per
-  run, while RealAntennas remained outside NoMoreLeaks' scope.
+  run, while RealAntennas remained outside KSPLeakReducer's scope.
 
 Condensed timeline:
 
@@ -170,9 +170,9 @@ Condensed timeline:
 | 2026-05-25 | Long-session map/UI leaks and recurring inventory callbacks | Dedicated map/UI cleanup worked; inventory remained the main target |
 | 2026-06-04 to 2026-06-05 | Repeated small inventory callback sets after scene transitions | Editor-to-flight live-object timing window identified |
 | 2026-06-07 to 2026-06-08 | Recent stock residue generally stayed in single digits | Inventory cleanup materially improved; `VesselAutopilotUI` remained the most consistent stock residue |
-| 2026-06-10 | NoMoreLeaks-off control run grew from 9.228 GiB to 17.489 GiB across 43 scene exits; KSPCF cleaned 26,617 callbacks | Confirmed the underlying stock leaks remain severe without proactive cleanup; added inventory part-creation/deletion coverage and fixed Harmony reserved-name collisions |
+| 2026-06-10 | KSPLeakReducer-off control run grew from 9.228 GiB to 17.489 GiB across 43 scene exits; KSPCF cleaned 26,617 callbacks | Confirmed the underlying stock leaks remain severe without proactive cleanup; added inventory part-creation/deletion coverage and fixed Harmony reserved-name collisions |
 
-The NoMoreLeaks-off control run confirmed that the underlying stock callback
+The KSPLeakReducer-off control run confirmed that the underlying stock callback
 leaks still occur without the mod. The dominant stock residue was
 `ModuleCargoPart.OnEVAConstructionMode`, with 5,315 callbacks cleaned by
 KSPCommunityFixes during the control session.
@@ -183,7 +183,7 @@ All locally generated June 2026 exports through `2026-06-13_03-30-47` have
 been reviewed. Allocation delta is measured from the first to final scene-exit
 sample in each export.
 
-| Export | NoMoreLeaks state | Scene exits | Final allocation | Allocation delta | Callbacks in KSPCF handled summary |
+| Export | KSPLeakReducer state | Scene exits | Final allocation | Allocation delta | Callbacks in KSPCF handled summary |
 | --- | --- | ---: | ---: | ---: | ---: |
 | `2026-06-08_03-03-56` | Partial install; zero success-marker count | 8 | 11.350 GiB | +1.618 GiB | 28 |
 | `2026-06-09_05-57-49` | Partial install; zero success-marker count | 27 | 16.641 GiB | +6.880 GiB | 398 |
@@ -228,7 +228,7 @@ The June 12 mixed rover, base, station, and deployed-science session exercised
 experiments, antennas, power parts, and other inventory-created objects. It
 also exercised ground-science termination and recovery cleanup. No covered
 stock callback owners remained in KSPCommunityFixes' handled summary, and no
-NoMoreLeaks exceptions occurred across 35 scene exits. The session contained
+KSPLeakReducer exceptions occurred across 35 scene exits. The session contained
 no deployed-science missing-vessel warnings. All 29 inventory deletion objects
 were standalone parts, so child-hierarchy cleanup through `DeletePartObject`
 itself remains untested. The same run logged 296 child-bearing
@@ -249,12 +249,12 @@ sweeps, and 19 destroy-selected cleanups completed without covered stock
 residue. Its final GameEvents callback count remained close to the prior run
 (`1,446` versus `1,480`). This run also reintroduced deployed-science
 missing-vessel warnings, supporting the conclusion that they are intermittent
-save-state noise rather than a NoMoreLeaks callback target.
+save-state noise rather than a KSPLeakReducer callback target.
 
 The June 13 short follow-up covered only seven scene exits and appears to be
 mostly flight-focused. It again left only the intentionally unpatched
 RealAntennas callback in KSPCommunityFixes' handled summary, reported no
-NoMoreLeaks warnings or exceptions, and its broad stock sweep cleaned destroyed
+KSPLeakReducer warnings or exceptions, and its broad stock sweep cleaned destroyed
 `AudioFX` pause and unpause callback owners. Its smaller total allocation
 increase reflects the short run rather than demonstrated memory improvement:
 normalized by scene exits, its increase was about `0.270 GiB` per exit,
@@ -265,7 +265,7 @@ establish a trend. Its final GameEvents callback count of `3,397` is elevated
 and should be watched in a longer comparable flight run. It did not exercise
 the editor-exit proactive sweep or inventory-deletion cleanup paths.
 
-Those two post-release follow-ups add 39 scene exits with no NoMoreLeaks
+Those two post-release follow-ups add 39 scene exits with no KSPLeakReducer
 exceptions and no covered stock callback residue. They provide a useful
 no-regression check for the safer `Part.OnDestroy` behavior, but do not yet
 demonstrate lower long-session memory growth.
@@ -275,7 +275,7 @@ docking and resource transfer, repeated crashes, save/load recovery, and cheat
 menu repositioning. Eleven of its 19 scene exits were from Flight, and it
 logged 142 child-bearing lifecycle cleanups. It again left only the
 intentionally unpatched RealAntennas callback in KSPCommunityFixes' handled
-summary and produced no NoMoreLeaks exceptions. This provides a strong
+summary and produced no KSPLeakReducer exceptions. This provides a strong
 flight-teardown and reload-stress no-regression check, but did not exercise
 editor or inventory `DeletePartObject` paths.
 
@@ -285,20 +285,20 @@ was managed memory; unmanaged memory peaked at `9.388 GiB` and ended at
 `8.975 GiB`. GameEvents callbacks stayed between `1,460` and `1,676` across
 most Flight exits before ending at `3,286`. Because KSPCommunityFixes found no
 covered destroyed callback owners at that final exit, the elevated count does
-not identify a new NoMoreLeaks target, but remains worth monitoring in another
+not identify a new KSPLeakReducer target, but remains worth monitoring in another
 comparable long-flight run. The session therefore reinforces cleanup stability
 without demonstrating lower process-memory growth.
 
 The full log also contains 201 `MissingFieldException` entries from
 `SCANmechjeb` looking for `MuMech.MechJebCore.target`. This indicates a binary
 compatibility mismatch between the installed SCANsat/SCANmechjeb and MechJeb
-versions. It is outside NoMoreLeaks' scope, but the repeated exceptions can add
+versions. It is outside KSPLeakReducer's scope, but the repeated exceptions can add
 noise and stutter around vessel modification and vessel-change events.
 
 ### Known Unhandled Third-Party Residue
 
 These callback owners recur in the unhandled summaries and remain outside the
-current NoMoreLeaks stock-cleanup scope:
+current KSPLeakReducer stock-cleanup scope:
 
 - `PlanetsideExplorationTechnologies.OnGameSettingsApplied`
 - `NearFutureElectrical.ReactorUI.onGUIApplicationLauncherDestroyed`
@@ -307,18 +307,18 @@ current NoMoreLeaks stock-cleanup scope:
 - `PartInfo.PartInfoWindow.onEditorPartEvent`
 
 The Planetside entry above is not the compatibility cleanup listed under Current
-Patch Targets. NoMoreLeaks cleans the separate Kerbal Planetary Base Systems
+Patch Targets. KSPLeakReducer cleans the separate Kerbal Planetary Base Systems
 `ModuleKPBSCorridorNodes.onEditorShipModified` callback, but does not currently
 clean `PlanetsideExplorationTechnologies.OnGameSettingsApplied`.
 
 Earlier exports also contain repeated deployed-science missing-vessel warnings.
 They were absent in `2026-06-12_02-38-13` but reappeared in
 `2026-06-12_05-20-57`, so treat them as intermittent save-state noise rather
-than a NoMoreLeaks callback target.
+than a KSPLeakReducer callback target.
 
 ## Current State
 
-As of `1.7.0`:
+As of `1.7.1`:
 
 - Long-flight `OverlayGenerator`, `MapView`, and `NavBallToggle` leaks are much
   less prominent.
@@ -338,7 +338,7 @@ As of `1.7.0`:
 - The June 12 follow-up run completed 35 scene exits without another GameEvents
   registry-enumeration exception.
 - The three later June 12 and June 13 follow-up runs added 58 scene exits with no
-  covered stock callbacks in KSPCF's handled summary or NoMoreLeaks exceptions,
+  covered stock callbacks in KSPCF's handled summary or KSPLeakReducer exceptions,
   validating the narrowed `Part.OnDestroy` behavior without showing a
   long-session memory-growth improvement yet.
 - Inventory placement cancellation and deployed-part teardown now validate the
@@ -347,7 +347,7 @@ As of `1.7.0`:
 `CommNetScenario: Instance already exists!` can appear immediately after
 RealAntennas rebuilds its CommNet homes. RealAntennas logs that this specific
 stock error should be ignored. It is not evidence of a leaked callback and does
-not require NoMoreLeaks cleanup.
+not require KSPLeakReducer cleanup.
 
 ## Build Notes
 
@@ -355,13 +355,13 @@ The project targets .NET Framework `4.7.1` and C# `7.2` for KSP compatibility.
 On Linux with Mono:
 
 ```bash
-xbuild NoMoreLeaks.sln /p:Configuration=Release
+xbuild KSPLeakReducer.sln /p:Configuration=Release
 ```
 
 The generated plugin lands in:
 
 ```text
-GameData/NoMoreLeaks/Plugins/NoMoreLeaks.dll
+GameData/KSPLeakReducer/Plugins/KSPLeakReducer.dll
 ```
 
 The GitHub release workflow retrieves private KSP, Unity, and Harmony reference

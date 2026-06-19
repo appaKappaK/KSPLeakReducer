@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{DD94E86A-6A5E-4B6D-9B0B-0F77BA1C7B25}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>KSPLeakReducer</RootNamespace>
+    <AssemblyName>KSPLeakReducer</AssemblyName>
+    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <LangVersion>7.2</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\..\GameData\KSPLeakReducer\Plugins\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\..\GameData\KSPLeakReducer\Plugins\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <Reference>
+      <Private>False</Private>
+    </Reference>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Startup.cs" />
+    <Compile Include="KSPLeakReducerSettings.cs" />
+    <Compile Include="EventCleanup.cs" />
+    <Compile Include="InventoryCallbackSweeper.cs" />
+    <Compile Include="Patches\BuildingPickerItemLeakPatch.cs" />
+    <Compile Include="Patches\CommNetVesselLeakPatch.cs" />
+    <Compile Include="Patches\MapViewLeakPatch.cs" />
+    <Compile Include="Patches\ModuleCargoPartLeakPatch.cs" />
+    <Compile Include="Patches\ModuleControlSurfaceLeakPatch.cs" />
+    <Compile Include="Patches\ModuleDeployableSolarPanelLeakPatch.cs" />
+    <Compile Include="Patches\ModuleGroundPartLeakPatch.cs" />
+    <Compile Include="Patches\ModuleInventoryDeletePartObjectLeakPatch.cs" />
+    <Compile Include="Patches\ModuleInventoryPartLeakPatch.cs" />
+    <Compile Include="Patches\ModuleRobotArmScannerLeakPatch.cs" />
+    <Compile Include="Patches\NavBallToggleLeakPatch.cs" />
+    <Compile Include="Patches\EVAConstructionModeEditorLeakPatch.cs" />
+    <Compile Include="Patches\EditorInventorySweepPatch.cs" />
+    <Compile Include="Patches\EditorToFlightSweepPatch.cs" />
+    <Compile Include="Patches\InternalNavBallLeakPatch.cs" />
+    <Compile Include="Patches\KerbalEVALeakPatch.cs" />
+    <Compile Include="Patches\OverlayGeneratorLeakPatch.cs" />
+    <Compile Include="Patches\PartModuleLifecycleLeakPatch.cs" />
+    <Compile Include="Patches\RunwayCollisionHandlerLeakPatch.cs" />
+    <Compile Include="Patches\SpaceTrackingLeakPatch.cs" />
+    <Compile Include="Patches\UIPartActionInventorySlotLeakPatch.cs" />
+    <Compile Include="Patches\UIPartActionControllerInventorySweepPatch.cs" />
+    <Compile Include="Patches\VesselAutopilotUILeakPatch.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>/stm/SteamLibrary/steamapps/common/Kerbal Space Program/GameData/000_Harmony/0Harmony.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>/stm/SteamLibrary/steamapps/common/Kerbal Space Program/KSP_x64_Data/Managed/Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="UnityEngine">
+      <HintPath>/stm/SteamLibrary/steamapps/common/Kerbal Space Program/KSP_x64_Data/Managed/UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>/stm/SteamLibrary/steamapps/common/Kerbal Space Program/KSP_x64_Data/Managed/UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>/stm/SteamLibrary/steamapps/common/Kerbal Space Program/KSP_x64_Data/Managed/UnityEngine.UI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>/stm/SteamLibrary/steamapps/common/Kerbal Space Program/KSP_x64_Data/Managed/UnityEngine.UIModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

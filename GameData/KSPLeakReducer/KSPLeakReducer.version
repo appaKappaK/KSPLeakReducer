@@ -1,0 +1,21 @@
+{
+  "NAME": "KSPLeakReducer",
+  "URL": "",
+  "DOWNLOAD": "",
+  "VERSION": {
+    "MAJOR": 1,
+    "MINOR": 7,
+    "PATCH": 1,
+    "BUILD": 0
+  },
+  "KSP_VERSION_MIN": {
+    "MAJOR": 1,
+    "MINOR": 12,
+    "PATCH": 0
+  },
+  "KSP_VERSION_MAX": {
+    "MAJOR": 1,
+    "MINOR": 12,
+    "PATCH": 99
+  }
+}

@@ -27,7 +27,7 @@ usage() {
 Usage:
   exp-memleaks [log_file] [output_dir]
 
-Extract and summarize KSPCommunityFixes and NoMoreLeaks memory-leak diagnostics.
+Extract and summarize KSPCommunityFixes and KSPLeakReducer memory-leak diagnostics.
 
 Arguments:
   log_file    KSP log to scan (default: ./KSP.log)
@@ -107,15 +107,15 @@ readonly OUT_SCENES="$OUTPUT_DIR/KSPCF-memory-leaks-scenes-${TIMESTAMP}.txt"
 readonly OUT_SCENES_SUMMARY="$OUTPUT_DIR/KSPCF-memory-leaks-scenes-summary-${TIMESTAMP}.txt"
 readonly OUT_WARNINGS="$OUTPUT_DIR/KSPCF-memory-leaks-warnings-${TIMESTAMP}.txt"
 readonly OUT_WARNINGS_SUMMARY="$OUTPUT_DIR/KSPCF-memory-leaks-warnings-summary-${TIMESTAMP}.txt"
-readonly OUT_NML_RAW="$OUTPUT_DIR/NoMoreLeaks-debug-raw-${TIMESTAMP}.txt"
-readonly OUT_NML_SUMMARY="$OUTPUT_DIR/NoMoreLeaks-debug-summary-${TIMESTAMP}.txt"
-readonly OUT_NML_MARKERS="$OUTPUT_DIR/NoMoreLeaks-debug-markers-${TIMESTAMP}.txt"
+readonly OUT_NML_RAW="$OUTPUT_DIR/KSPLeakReducer-debug-raw-${TIMESTAMP}.txt"
+readonly OUT_NML_SUMMARY="$OUTPUT_DIR/KSPLeakReducer-debug-summary-${TIMESTAMP}.txt"
+readonly OUT_NML_MARKERS="$OUTPUT_DIR/KSPLeakReducer-debug-markers-${TIMESTAMP}.txt"
 
 readonly PAT_LEAKS='\[KSPCF:MemoryLeaks\] Removed a .* callback owned by a destroyed'
 readonly PAT_UNHANDLED='\[KSPCF:MemoryLeaks\] A destroyed .* instance is owning a .* callback\. No action has been taken'
 readonly PAT_SCENES='\[KSPCF:MemoryLeaks\] Leaving scene ".*", cleaned [0-9]+ memory leaks'
-readonly PAT_NML_DEBUG='\[NoMoreLeaks:Debug\]'
-readonly PAT_WARNINGS='(\[EXC [^]]+\]|\[(WRN|ERR) [^]]+\].*(NoMoreLeaks|Harmony|KSPCF:MemoryLeaks|TransmitterModule|ModuleScienceLab|ModuleScienceExperiment|DeployedScienceExperiment|GroundScience|CommNet|RealAntennas|Cannot Transmit|No usable|Failed to find Vessel for Experiment|Collection was modified)|\[NoMoreLeaks\].*(Missing|Could not|Exception|[Ff]ail|[Ww]arning))'
+readonly PAT_NML_DEBUG='\[KSPLeakReducer:Debug\]'
+readonly PAT_WARNINGS='(\[EXC [^]]+\]|\[(WRN|ERR) [^]]+\].*(KSPLeakReducer|Harmony|KSPCF:MemoryLeaks|TransmitterModule|ModuleScienceLab|ModuleScienceExperiment|DeployedScienceExperiment|GroundScience|CommNet|RealAntennas|Cannot Transmit|No usable|Failed to find Vessel for Experiment|Collection was modified)|\[KSPLeakReducer\].*(Missing|Could not|Exception|[Ff]ail|[Ww]arning))'
 
 readonly SUMMARY_MAX_LINES=40
 readonly WARNINGS_PREVIEW_LINES=80
@@ -156,7 +156,7 @@ for output_file in "${OUTPUT_FILES[@]}"; do
 done
 
 # KSP (and Proton) writes CRLF; strip it so regex anchors work correctly
-CLEAN_LOG="$(mktemp "${TMPDIR:-/tmp}/nomoreleaks.XXXXXX")"
+CLEAN_LOG="$(mktemp "${TMPDIR:-/tmp}/kspleakreducer.XXXXXX")"
 SUCCESS=0
 cleanup() {
     rm -f "$CLEAN_LOG"
@@ -254,13 +254,13 @@ sed -E 's/^[0-9]+:\[(WRN|ERR|EXC) [^]]+\] /\1 | /; s/[0-9]{4,}/<id>/g' \
     > "$OUT_WARNINGS_SUMMARY"
 
 # ---------------------------------------------------------------------------
-# Summarise: NoMoreLeaks debug lines (aggregate callback counts per owner)
+# Summarise: KSPLeakReducer debug lines (aggregate callback counts per owner)
 # ---------------------------------------------------------------------------
 
 awk '
     /Removed [0-9]+ callback\(s\) from .* owned by [^ ]+ via .*$/ {
         entry = $0
-        sub(/^.*\[NoMoreLeaks:Debug\] Removed /, "", entry)
+        sub(/^.*\[KSPLeakReducer:Debug\] Removed /, "", entry)
 
         count = entry
         sub(/ .*/, "", count)
@@ -287,12 +287,12 @@ awk '
 # Record patch-path evidence so runs can be classified without relying only on
 # export timestamps.
 {
-    printf "%7d %s\n" "$(count_matches '\[NoMoreLeaks\] Harmony patches applied' "$CLEAN_LOG")" "Harmony patches applied"
-    printf "%7d %s\n" "$(count_matches '\[NoMoreLeaks:Debug\] Proactive sweep via EditorLogic\.exitEditor\.Prefix' "$CLEAN_LOG")" "Editor exit proactive sweep (v1.6+ marker)"
-    printf "%7d %s\n" "$(count_matches '\[NoMoreLeaks:Debug\] Editor destroy-selected requested' "$CLEAN_LOG")" "Editor destroy-selected cleanup"
-    printf "%7d %s\n" "$(count_matches '\[NoMoreLeaks:Debug\] Editor delete requested' "$CLEAN_LOG")" "Editor delete cleanup"
-    printf "%7d %s\n" "$(count_matches '\[NoMoreLeaks:Debug\] Inventory delete-part-object cleanup' "$CLEAN_LOG")" "Inventory DeletePartObject cleanup"
-    printf "%7d %s\n" "$(count_matches '\[NoMoreLeaks:Debug\] Lifecycle cleanup on .*children=[1-9]' "$CLEAN_LOG")" "Lifecycle cleanup with child parts"
+    printf "%7d %s\n" "$(count_matches '\[KSPLeakReducer\] Harmony patches applied' "$CLEAN_LOG")" "Harmony patches applied"
+    printf "%7d %s\n" "$(count_matches '\[KSPLeakReducer:Debug\] Proactive sweep via EditorLogic\.exitEditor\.Prefix' "$CLEAN_LOG")" "Editor exit proactive sweep (v1.6+ marker)"
+    printf "%7d %s\n" "$(count_matches '\[KSPLeakReducer:Debug\] Editor destroy-selected requested' "$CLEAN_LOG")" "Editor destroy-selected cleanup"
+    printf "%7d %s\n" "$(count_matches '\[KSPLeakReducer:Debug\] Editor delete requested' "$CLEAN_LOG")" "Editor delete cleanup"
+    printf "%7d %s\n" "$(count_matches '\[KSPLeakReducer:Debug\] Inventory delete-part-object cleanup' "$CLEAN_LOG")" "Inventory DeletePartObject cleanup"
+    printf "%7d %s\n" "$(count_matches '\[KSPLeakReducer:Debug\] Lifecycle cleanup on .*children=[1-9]' "$CLEAN_LOG")" "Lifecycle cleanup with child parts"
 } > "$OUT_NML_MARKERS"
 
 # ---------------------------------------------------------------------------
@@ -310,7 +310,7 @@ echo "-------"
 info "$n_leaks  KSPCF leak callback lines  →  $OUT_RAW"
 info "$n_unhandled  KSPCF unhandled leak lines →  $OUT_UNHANDLED_RAW"
 info "$n_scenes  KSPCF scene cleanup lines   →  $OUT_SCENES"
-info "$n_debug  NoMoreLeaks debug lines    →  $OUT_NML_RAW"
+info "$n_debug  KSPLeakReducer debug lines    →  $OUT_NML_RAW"
 info "$n_warn   warnings / errors / exceptions →  $OUT_WARNINGS"
 echo
 echo "Summaries"
@@ -331,7 +331,7 @@ fi
 
 if [[ "$n_debug" -gt 0 && ! -s "$OUT_NML_SUMMARY" ]]; then
     echo
-    echo "warning: NoMoreLeaks debug lines found but summary is empty — the" >&2
+    echo "warning: KSPLeakReducer debug lines found but summary is empty — the" >&2
     echo "         log line format may not match the expected pattern." >&2
 fi
 
@@ -350,7 +350,7 @@ fi
 if [[ "$n_leaks" -eq 0 && "$n_unhandled" -eq 0 && "$n_scenes" -eq 0 && "$n_debug" -eq 0 && "$n_warn" -eq 0 ]]; then
     echo
     echo "Nothing matched. Possible reasons:"
-    echo "  • KSPCF / NoMoreLeaks mods are not installed or not active"
+    echo "  • KSPCF / KSPLeakReducer mods are not installed or not active"
     echo "  • The symlink points to the wrong or an outdated KSP.log"
     echo "  • The log is from a session that had no leaks"
 fi

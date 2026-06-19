@@ -5,9 +5,9 @@ obj/
 **/obj/
 
 # Generated plugin binaries
-GameData/NoMoreLeaks/Plugins/*.dll
-GameData/NoMoreLeaks/Plugins/*.pdb
-GameData/NoMoreLeaks/Plugins/*.mdb
+GameData/KSPLeakReducer/Plugins/*.dll
+GameData/KSPLeakReducer/Plugins/*.pdb
+GameData/KSPLeakReducer/Plugins/*.mdb
 leak-sums/
 # Editor and OS files
 .vs/
@@ -22,7 +22,7 @@ Thumbs.db
 *.log
 /backups/
 KSPCF-memory-leaks-*.txt
-NoMoreLeaks-debug-*.txt
+KSPLeakReducer-debug-*.txt
 instructions.txt
 /exp-memleaks.sh
 /exp-memleaks

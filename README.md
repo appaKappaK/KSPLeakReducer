@@ -1,14 +1,14 @@
-# 💧 NoMoreLeaks
+# 💧 KSPLeakReducer
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE) [![KSP Version](https://img.shields.io/badge/KSP-1.12.x-green.svg)](https://www.kerbalspaceprogram.com/) [![GitHub release](https://img.shields.io/github/v/release/appaKappaK/NoMoreLeaks.svg)](https://github.com/appaKappaK/NoMoreLeaks/releases)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE) [![KSP Version](https://img.shields.io/badge/KSP-1.12.x-green.svg)](https://www.kerbalspaceprogram.com/) [![GitHub release](https://img.shields.io/github/v/release/appaKappaK/KSPLeakReducer.svg)](https://github.com/appaKappaK/KSPLeakReducer/releases)
 
-> **NoMoreLeaks** is a small Kerbal Space Program 1 mod that reduces stock
+> **KSPLeakReducer** is a small Kerbal Space Program 1 mod that reduces stock
 > event callback memory leaks during scene changes, editor use, vessel
 > unloading, and other teardown paths.
 
 It works alongside
 [KSPCommunityFixes](https://github.com/KSPModdingLibs/KSPCommunityFixes).
-KSPCommunityFixes detects and cleans many leaks after they occur; NoMoreLeaks
+KSPCommunityFixes detects and cleans many leaks after they occur; KSPLeakReducer
 tries to prevent selected stock callbacks from being left behind in the first
 place.
 
@@ -33,31 +33,34 @@ place.
 
 ## Installation
 
-Copy the packaged `NoMoreLeaks` folder into your KSP `GameData` directory:
+Copy the packaged `KSPLeakReducer` folder into your KSP `GameData` directory.
+
+`KSPLeakReducer` was previously named `NoMoreLeaks`.
+If you are upgrading, delete `GameData/NoMoreLeaks` first so KSP does not load both copies.
 
 ```text
 GameData/
   000_Harmony/
     0Harmony.dll
-  NoMoreLeaks/
-    NoMoreLeaks.cfg
-    NoMoreLeaks.version
+  KSPLeakReducer/
+    KSPLeakReducer.cfg
+    KSPLeakReducer.version
     Plugins/
-      NoMoreLeaks.dll
+      KSPLeakReducer.dll
 ```
 
 After starting KSP, your `KSP.log` should contain:
 
 ```text
-[NoMoreLeaks] Harmony patches applied
+[KSPLeakReducer] Harmony patches applied
 ```
 
 ## Configuration
 
-`GameData/NoMoreLeaks/NoMoreLeaks.cfg` contains:
+`GameData/KSPLeakReducer/KSPLeakReducer.cfg` contains:
 
 ```text
-NOMORELEAKS
+KSPLEAKREDUCER
 {
     VerboseDebugLogging = true
 }
@@ -68,16 +71,16 @@ NOMORELEAKS
 
 ## Compatibility
 
-NoMoreLeaks targets Kerbal Space Program `1.12.x` and requires Harmony 2. It is
-designed to complement **KSPCommunityFixes**: NoMoreLeaks tries to prevent
+KSPLeakReducer targets Kerbal Space Program `1.12.x` and requires Harmony 2. It is
+designed to complement **KSPCommunityFixes**: KSPLeakReducer tries to prevent
 selected stock callbacks from being stranded, while KSPCommunityFixes detects
 and cleans callbacks that remain.
 
-No other gameplay or content mods are required. NoMoreLeaks includes a small
+No other gameplay or content mods are required. KSPLeakReducer includes a small
 number of optional compatibility fixes for known mod interactions, but they are
 used *only* when the relevant mod is installed.
 
-NoMoreLeaks does not attempt broad third-party leak cleanup. Its primary scope
+KSPLeakReducer does not attempt broad third-party leak cleanup. Its primary scope
 remains stock KSP and Breaking Ground lifecycle behavior.
 
 ## Troubleshooting
@@ -85,25 +88,25 @@ remains stock KSP and Breaking Ground lifecycle behavior.
 After starting KSP, confirm that `KSP.log` contains:
 
 ```text
-[NoMoreLeaks] Harmony patches applied
+[KSPLeakReducer] Harmony patches applied
 ```
 
-This confirms that Harmony loaded every NoMoreLeaks patch successfully. If the
-message is missing, confirm that Harmony 2 and NoMoreLeaks are installed
+This confirms that Harmony loaded every KSPLeakReducer patch successfully. If the
+message is missing, confirm that Harmony 2 and KSPLeakReducer are installed
 correctly, then check the surrounding log entries for a patching exception.
 
-Cleanup messages appear only when NoMoreLeaks actually removes callbacks, so
+Cleanup messages appear only when KSPLeakReducer actually removes callbacks, so
 they may not appear during every session:
 
 ```text
-[NoMoreLeaks] Removed N destroyed callback owners
-[NoMoreLeaks] Scene-unload removed N destroyed callback owners
+[KSPLeakReducer] Removed N destroyed callback owners
+[KSPLeakReducer] Scene-unload removed N destroyed callback owners
 ```
 
 When verbose logging is enabled, detailed cleanup messages begin with:
 
 ```text
-[NoMoreLeaks:Debug]
+[KSPLeakReducer:Debug]
 ```
 
 **Please include `KSP.log` when reporting a problem.**
