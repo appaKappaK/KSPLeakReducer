@@ -27,9 +27,12 @@ place.
 
 ## Requirements
 
-- **Kerbal Space Program** `1.12.x`
-- **Harmony 2**
-- **KSPCommunityFixes** *(strongly recommended)*
+- Kerbal Space Program 1.12.x
+- [Harmony 2](https://github.com/KSPModdingLibs/HarmonyKSP)
+
+## Recommended
+
+- [KSPCommunityFixes](https://github.com/KSPModdingLibs/KSPCommunityFixes)
 
 ## Installation
 
